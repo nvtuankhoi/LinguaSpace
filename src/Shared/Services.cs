@@ -25,4 +25,10 @@ public static class Services
     /// This is the name of the database that will be created and used by the application.
     /// </summary>
     public const string Database = "LinguaSpaceDb";
+
+    /// <summary>
+    /// The name of the Redis cache service.
+    /// Used as the SignalR backplane and distributed cache.
+    /// </summary>
+    public const string Cache = "cache";
 }

@@ -5,7 +5,7 @@ namespace LinguaSpace.Web.Infrastructure;
 /// Implementations are automatically discovered and registered as a route group with a matching
 /// OpenAPI tag. By default the route prefix is <c>/api/{ClassName}</c>; override
 /// <see cref="RoutePrefix"/> to use a custom path, including nested resource paths such as
-/// <c>/api/TodoLists/{todoListId}/TodoItems</c>.
+/// <c>/api/Rooms/{roomId}/Messages</c>.
 /// </summary>
 public interface IEndpointGroup
 {
@@ -17,3 +17,4 @@ public interface IEndpointGroup
 
     static abstract void Map(RouteGroupBuilder groupBuilder);
 }
+

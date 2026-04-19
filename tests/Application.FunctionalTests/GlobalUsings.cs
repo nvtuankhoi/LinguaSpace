@@ -1,6 +1,9 @@
 ﻿global using Ardalis.GuardClauses;
+global using LinguaSpace.Application.Auth.Commands.Register;
 global using LinguaSpace.Application.FunctionalTests.Infrastructure;
+global using LinguaSpace.Application.Auth.DTOs;
 global using LinguaSpace.Shared;
+global using Microsoft.EntityFrameworkCore;
 global using Moq;
 global using NUnit.Framework;
 global using Shouldly;

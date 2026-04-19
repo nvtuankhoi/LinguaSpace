@@ -1,6 +1,4 @@
-﻿using ValidationException = LinguaSpace.Application.Common.Exceptions.ValidationException;
-
-namespace LinguaSpace.Application.Common.Behaviours;
+﻿namespace LinguaSpace.Application.Common.Behaviours;
 
 public class ValidationBehaviour<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull

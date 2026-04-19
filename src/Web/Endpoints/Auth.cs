@@ -1,0 +1,154 @@
+using LinguaSpace.Application.Auth.Commands.Login;
+using LinguaSpace.Application.Auth.Commands.Logout;
+using LinguaSpace.Application.Auth.Commands.RefreshToken;
+using LinguaSpace.Application.Auth.Commands.Register;
+using LinguaSpace.Application.Auth.DTOs;
+using LinguaSpace.Application.Auth.Queries.GetCurrentUser;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+
+namespace LinguaSpace.Web.Endpoints;
+
+/// <summary>
+/// Auth endpoints: Register, Login, Refresh, Logout, Me.
+/// Refresh token strategy: stored as HttpOnly cookie (XSS-safe).
+/// Access token returned in response body — client stores in memory (not localStorage).
+/// </summary>
+public class Auth : IEndpointGroup
+{
+    // Constant for the HttpOnly cookie name used across Login, Refresh, and Logout.
+    private const string RefreshTokenCookie = "refresh_token";
+
+    public static void Map(RouteGroupBuilder group)
+    {
+        group.MapPost(Register).AllowAnonymous();
+        group.MapPost(Login).AllowAnonymous();
+        group.MapPost(Refresh, "refresh").AllowAnonymous();
+        group.MapPost(Logout, "logout").RequireAuthorization();
+        group.MapGet(Me, "me").RequireAuthorization();
+    }
+
+    // ─── POST /api/Auth/register ─────────────────────────────────────────────
+
+    [EndpointSummary("Register a new user")]
+    [EndpointDescription("Creates a new account and UserProfile. Returns userId and email.")]
+    [ProducesResponseType(typeof(RegisterResult), StatusCodes.Status201Created)]
+    public static async Task<Created<RegisterResult>> Register(
+        [FromBody] RegisterCommand command,
+        ISender sender)
+    {
+        RegisterResult result = await sender.Send(command);
+
+        // 201 Created with Location header pointing to the new user's profile
+        return TypedResults.Created($"/api/Users/{result.UserId}", result);
+    }
+
+    // ─── POST /api/Auth/login ────────────────────────────────────────────────
+
+    [EndpointSummary("Login")]
+    [EndpointDescription("Returns access token in body. Sets HttpOnly refresh_token cookie.")]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public static async Task<Ok<object>> Login(
+        [FromBody] LoginCommand command,
+        ISender sender,
+        HttpResponse response)
+    {
+        LoginResult result = await sender.Send(command);
+
+        SetRefreshTokenCookie(response, result.RefreshToken);
+
+        // Only expose access token and metadata in the body.
+        // Never expose the raw refresh token in the body — it belongs in the cookie only.
+        return TypedResults.Ok<object>(new
+        {
+            result.AccessToken,
+            result.ExpiresIn,
+            result.UserId,
+            result.Email,
+        });
+    }
+
+    // ─── POST /api/Auth/refresh ──────────────────────────────────────────────
+
+    [EndpointSummary("Refresh access token")]
+    [EndpointDescription(
+        "Reads refresh token from HttpOnly cookie, issues new token pair (rotation). " +
+        "Returns new access token in body and sets new refresh_token cookie.")]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public static async Task<Ok<object>> Refresh(
+        ISender sender,
+        HttpRequest request,
+        HttpResponse response)
+    {
+        // Read refresh token from HttpOnly cookie (never from request body — that would
+        // require JavaScript to send it, defeating the purpose of HttpOnly).
+        string? rawRefreshToken = request.Cookies[RefreshTokenCookie];
+
+        if (string.IsNullOrEmpty(rawRefreshToken))
+        {
+            throw new UnauthorizedAccessException("Refresh token cookie is missing.");
+        }
+
+        TokenResult result = await sender.Send(new RefreshTokenCommand(rawRefreshToken));
+
+        SetRefreshTokenCookie(response, result.NewRefreshToken);
+
+        return TypedResults.Ok<object>(new
+        {
+            result.AccessToken,
+            result.ExpiresIn,
+        });
+    }
+
+    // ─── POST /api/Auth/logout ───────────────────────────────────────────────
+
+    [EndpointSummary("Logout")]
+    [EndpointDescription("Clears the refresh token from the database and removes the HttpOnly cookie.")]
+    public static async Task<NoContent> Logout(
+        ISender sender,
+        HttpResponse response)
+    {
+        await sender.Send(new LogoutCommand());
+
+        // Delete the cookie by setting it with an expired MaxAge
+        response.Cookies.Delete(RefreshTokenCookie, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+        });
+
+        return TypedResults.NoContent();
+    }
+
+    // ─── GET /api/Auth/me ────────────────────────────────────────────────────
+
+    [EndpointSummary("Get current user")]
+    [EndpointDescription("Returns the authenticated user's profile from the JWT claims.")]
+    [ProducesResponseType(typeof(CurrentUserDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public static async Task<Ok<CurrentUserDto>> Me(ISender sender)
+    {
+        CurrentUserDto dto = await sender.Send(new GetCurrentUserQuery());
+        return TypedResults.Ok(dto);
+    }
+
+    // ─── Helpers ─────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Sets the HttpOnly refresh token cookie with a 7-day expiry.
+    /// Secure=true is required in production (HTTPS only).
+    /// SameSite=Strict prevents CSRF attacks.
+    /// </summary>
+    private static void SetRefreshTokenCookie(HttpResponse response, string rawToken)
+    {
+        response.Cookies.Append(RefreshTokenCookie, rawToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,              // Set to false only for HTTP dev testing
+            SameSite = SameSiteMode.Strict,
+            MaxAge = TimeSpan.FromDays(7),
+            Path = "/api/Auth",         // Scope cookie to Auth endpoints only (minimize exposure)
+        });
+    }
+}

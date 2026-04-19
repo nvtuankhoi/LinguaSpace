@@ -27,16 +27,31 @@ public static class DependencyInjection
         builder.Services.AddOpenApi(options =>
         {
             options.AddOperationTransformer<ApiExceptionOperationTransformer>();
-            options.AddOperationTransformer<IdentityApiOperationTransformer>();
+            // IdentityApiOperationTransformer is removed — we no longer use MapIdentityApi
             options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
         });
 
-        builder.Services.AddCors();
+        // CORS: AllowAnyOrigin() + AllowCredentials() is INVALID (browser blocks it).
+        // Must specify exact origin(s) when credentials (cookies/auth headers) are needed.
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("LinguaSpacePolicy", policy =>
+            {
+                policy
+                    .WithOrigins(
+                        "http://localhost:5173",  // Vite / React dev server
+                        "http://localhost:4200"   // Angular dev server (if needed)
+                    )
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .AllowCredentials(); // Required for HttpOnly refresh token cookie
+            });
+        });
     }
 
     public static void AddKeyVaultIfConfigured(this IHostApplicationBuilder builder)
     {
-        var keyVaultUri = builder.Configuration["AZURE_KEY_VAULT_ENDPOINT"];
+        string? keyVaultUri = builder.Configuration["AZURE_KEY_VAULT_ENDPOINT"];
         if (!string.IsNullOrWhiteSpace(keyVaultUri))
         {
             builder.Configuration.AddAzureKeyVault(

@@ -1,3 +1,5 @@
+using LinguaSpace.Application.Auth.Commands.Register;
+using LinguaSpace.Application.Auth.DTOs;
 using LinguaSpace.Domain.Constants;
 using LinguaSpace.Infrastructure.Data;
 using LinguaSpace.Infrastructure.Identity;
@@ -88,6 +90,24 @@ public static class TestApp
 
         _userId = null;
         _roles = null;
+    }
+
+    /// <summary>
+    /// Registers a user via RegisterCommand (creates ApplicationUser + UserProfile via domain event),
+    /// then sets the current user context so subsequent MediatR requests run as that user.
+    /// Use this instead of RunAsDefaultUserAsync() when tests need a UserProfile to exist.
+    /// </summary>
+    public static async Task<string> RegisterAndSetCurrentUserAsync(
+        string email = "testuser@local",
+        string password = "Testing1234!")
+    {
+        RegisterResult result = await SendAsync(new RegisterCommand(email, password));
+
+        // Set test context so IUser mock returns this userId
+        _userId = result.UserId;
+        _roles = [];
+
+        return result.UserId;
     }
 
     public static async Task<TEntity?> FindAsync<TEntity>(params object[] keyValues)

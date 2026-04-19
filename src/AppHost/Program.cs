@@ -11,9 +11,15 @@ var databaseServer = builder
         container.WithLifetime(ContainerLifetime.Persistent))
     .AddDatabase(Services.Database);
 
+var redis = builder
+    .AddRedis(Services.Cache)
+    .WithLifetime(ContainerLifetime.Persistent);
+
 var web = builder.AddProject<Projects.Web>(Services.WebApi)
     .WithReference(databaseServer)
     .WaitFor(databaseServer)
+    .WithReference(redis)
+    .WaitFor(redis)
     .WithExternalHttpEndpoints()
     .WithAspNetCoreEnvironment()
     .WithUrlForEndpoint("http", url =>

@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using LinguaSpace.Application.Common.Interfaces;
 using LinguaSpace.Application.Common.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -24,57 +26,118 @@ public class IdentityService : IIdentityService
 
     public async Task<string?> GetUserNameAsync(string userId)
     {
-        var user = await _userManager.FindByIdAsync(userId);
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
 
         return user?.UserName;
     }
 
-    public async Task<(Result Result, string UserId)> CreateUserAsync(string userName, string password)
+    public async Task<string?> GetEmailAsync(string userId)
     {
-        var user = new ApplicationUser
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
+
+        return user?.Email;
+    }
+
+    public async Task<(Result Result, string UserId)> CreateUserAsync(string email, string password)
+    {
+        ApplicationUser user = new()
         {
-            UserName = userName,
-            Email = userName,
+            UserName = email,
+            Email = email,
         };
 
-        var result = await _userManager.CreateAsync(user, password);
+        IdentityResult result = await _userManager.CreateAsync(user, password);
 
         return (result.ToApplicationResult(), user.Id);
     }
 
+    public async Task<string?> GetUserByEmailAsync(string email)
+    {
+        ApplicationUser? user = await _userManager.FindByEmailAsync(email);
+
+        return user?.Id;
+    }
+
+    public async Task<bool> CheckPasswordAsync(string userId, string password)
+    {
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return false;
+        }
+
+        return await _userManager.CheckPasswordAsync(user, password);
+    }
+
+    public async Task UpdateRefreshTokenAsync(string userId, string? tokenHash, DateTimeOffset? expiresAt)
+    {
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return;
+        }
+
+        user.RefreshTokenHash = tokenHash;
+        user.RefreshTokenExpiresAt = expiresAt;
+
+        await _userManager.UpdateAsync(user);
+    }
+
     public async Task<bool> IsInRoleAsync(string userId, string role)
     {
-        var user = await _userManager.FindByIdAsync(userId);
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
 
         return user != null && await _userManager.IsInRoleAsync(user, role);
     }
 
     public async Task<bool> AuthorizeAsync(string userId, string policyName)
     {
-        var user = await _userManager.FindByIdAsync(userId);
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
 
         if (user == null)
         {
             return false;
         }
 
-        var principal = await _userClaimsPrincipalFactory.CreateAsync(user);
+        System.Security.Claims.ClaimsPrincipal principal = await _userClaimsPrincipalFactory.CreateAsync(user);
 
-        var result = await _authorizationService.AuthorizeAsync(principal, policyName);
+        AuthorizationResult result = await _authorizationService.AuthorizeAsync(principal, policyName);
 
         return result.Succeeded;
     }
 
+    public async Task<IList<string>> GetRolesAsync(string userId)
+    {
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return [];
+        }
+
+        return await _userManager.GetRolesAsync(user);
+    }
+
+    public async Task<string?> GetUserIdByRefreshTokenHashAsync(string tokenHash, DateTimeOffset now)
+    {
+        ApplicationUser? user = await _userManager.Users
+            .FirstOrDefaultAsync(u => u.RefreshTokenHash == tokenHash && u.RefreshTokenExpiresAt > now);
+
+        return user?.Id;
+    }
+
     public async Task<Result> DeleteUserAsync(string userId)
     {
-        var user = await _userManager.FindByIdAsync(userId);
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
 
         return user != null ? await DeleteUserAsync(user) : Result.Success();
     }
 
-    public async Task<Result> DeleteUserAsync(ApplicationUser user)
+    private async Task<Result> DeleteUserAsync(ApplicationUser user)
     {
-        var result = await _userManager.DeleteAsync(user);
+        IdentityResult result = await _userManager.DeleteAsync(user);
 
         return result.ToApplicationResult();
     }

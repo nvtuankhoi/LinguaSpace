@@ -1,6 +1,5 @@
-﻿using System.Reflection;
+using System.Reflection;
 using LinguaSpace.Application.Common.Interfaces;
-using LinguaSpace.Domain.Entities;
 using LinguaSpace.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -11,9 +10,27 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
-    public DbSet<TodoList> TodoLists => Set<TodoList>();
-
-    public DbSet<TodoItem> TodoItems => Set<TodoItem>();
+    public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
+    public DbSet<UserLanguage> UserLanguages => Set<UserLanguage>();
+    public DbSet<UserDevice> UserDevices => Set<UserDevice>();
+    public DbSet<Room> Rooms => Set<Room>();
+    public DbSet<RoomParticipant> RoomParticipants => Set<RoomParticipant>();
+    public DbSet<RoomMediaSession> RoomMediaSessions => Set<RoomMediaSession>();
+    public DbSet<Message> Messages => Set<Message>();
+    public DbSet<Conversation> Conversations => Set<Conversation>();
+    public DbSet<DirectMessage> DirectMessages => Set<DirectMessage>();
+    public DbSet<Post> Posts => Set<Post>();
+    public DbSet<PostMediaItem> PostMediaItems => Set<PostMediaItem>();
+    public DbSet<PostTag> PostTags => Set<PostTag>();
+    public DbSet<Comment> Comments => Set<Comment>();
+    public DbSet<Reaction> Reactions => Set<Reaction>();
+    public DbSet<Friendship> Friendships => Set<Friendship>();
+    public DbSet<Follow> Follows => Set<Follow>();
+    public DbSet<UserXp> UserXps => Set<UserXp>();
+    public DbSet<Badge> Badges => Set<Badge>();
+    public DbSet<UserBadge> UserBadges => Set<UserBadge>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<Report> Reports => Set<Report>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -21,3 +38,4 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
     }
 }
+
