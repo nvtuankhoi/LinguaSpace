@@ -1,9 +1,14 @@
+using LinguaSpace.Application.Auth.Commands.ForgotPassword;
 using LinguaSpace.Application.Auth.Commands.Login;
 using LinguaSpace.Application.Auth.Commands.Logout;
 using LinguaSpace.Application.Auth.Commands.RefreshToken;
 using LinguaSpace.Application.Auth.Commands.Register;
+using LinguaSpace.Application.Auth.Commands.RegisterDeviceToken;
+using LinguaSpace.Application.Auth.Commands.ResetPassword;
+using LinguaSpace.Application.Auth.Commands.VerifyEmail;
 using LinguaSpace.Application.Auth.DTOs;
 using LinguaSpace.Application.Auth.Queries.GetCurrentUser;
+using LinguaSpace.Domain.Enums;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -26,6 +31,14 @@ public class Auth : IEndpointGroup
         group.MapPost(Refresh, "refresh").AllowAnonymous();
         group.MapPost(Logout, "logout").RequireAuthorization();
         group.MapGet(Me, "me").RequireAuthorization();
+
+        // ─── Email verification ───────────────────────────────────────────────
+        group.MapPost(VerifyEmail, "verify-email").RequireAuthorization();
+        group.MapPost(ForgotPassword, "forgot-password").AllowAnonymous();
+        group.MapPost(ResetPassword, "reset-password").AllowAnonymous();
+
+        // ─── Push notification device token ──────────────────────────────────
+        group.MapPost(RegisterDeviceToken, "device-token").RequireAuthorization();
     }
 
     // ─── POST /api/Auth/register ─────────────────────────────────────────────
@@ -133,6 +146,63 @@ public class Auth : IEndpointGroup
         return TypedResults.Ok(dto);
     }
 
+    // ─── POST /api/Auth/verify-email ─────────────────────────────────────────
+
+    [EndpointSummary("Verify email address")]
+    [EndpointDescription("Confirms the user's email using the token sent at registration.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public static async Task<NoContent> VerifyEmail(
+        [FromBody] VerifyEmailCommand command,
+        ISender sender)
+    {
+        await sender.Send(command);
+        return TypedResults.NoContent();
+    }
+
+    // ─── POST /api/Auth/forgot-password ──────────────────────────────────────
+
+    [EndpointSummary("Request a password reset email")]
+    [EndpointDescription(
+        "Sends a password reset link to the provided email. " +
+        "Always returns 200 regardless of whether the email exists (prevents enumeration).")]
+    public static async Task<Ok> ForgotPassword(
+        [FromBody] ForgotPasswordCommand command,
+        ISender sender)
+    {
+        await sender.Send(command);
+        return TypedResults.Ok();
+    }
+
+    // ─── POST /api/Auth/reset-password ───────────────────────────────────────
+
+    [EndpointSummary("Reset password")]
+    [EndpointDescription("Resets the password using the token from the reset email.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public static async Task<NoContent> ResetPassword(
+        [FromBody] ResetPasswordCommand command,
+        ISender sender)
+    {
+        await sender.Send(command);
+        return TypedResults.NoContent();
+    }
+
+    // ─── POST /api/Auth/device-token ─────────────────────────────────────────
+
+    [EndpointSummary("Register FCM push notification token")]
+    [EndpointDescription(
+        "Registers (or updates) the FCM push token for the current user's device. " +
+        "Call this on app launch after the user logs in.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public static async Task<NoContent> RegisterDeviceToken(
+        [FromBody] RegisterDeviceTokenBody body,
+        ISender sender)
+    {
+        await sender.Send(new RegisterDeviceTokenCommand(body.FcmToken, body.Platform));
+        return TypedResults.NoContent();
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -152,3 +222,6 @@ public class Auth : IEndpointGroup
         });
     }
 }
+
+/// <summary>Request body for the RegisterDeviceToken endpoint.</summary>
+public record RegisterDeviceTokenBody(string FcmToken, DevicePlatform Platform);

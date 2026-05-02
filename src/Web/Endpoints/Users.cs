@@ -4,6 +4,7 @@ using LinguaSpace.Application.Users.Commands.RemoveLanguage;
 using LinguaSpace.Application.Users.Commands.RespondFriendRequest;
 using LinguaSpace.Application.Users.Commands.SendFriendRequest;
 using LinguaSpace.Application.Users.Commands.UnfollowUser;
+using LinguaSpace.Application.Users.Commands.UpdateAvatar;
 using LinguaSpace.Application.Users.Commands.UpdateProfile;
 using LinguaSpace.Application.Users.DTOs;
 using LinguaSpace.Application.Users.Queries.GetUserProfile;
@@ -28,6 +29,7 @@ public class Users : IEndpointGroup
 
         // ─── Profile management (own account) ────────────────────────────────
         group.MapPut(UpdateProfile, "me/profile").RequireAuthorization();
+        group.MapPut(UpdateAvatar, "me/avatar").RequireAuthorization();
         group.MapPost(AddLanguage, "me/languages").RequireAuthorization();
         group.MapDelete(RemoveLanguage, "me/languages/{languageId}").RequireAuthorization();
 
@@ -84,6 +86,23 @@ public class Users : IEndpointGroup
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public static async Task<NoContent> UpdateProfile(
         [FromBody] UpdateProfileCommand command,
+        ISender sender)
+    {
+        await sender.Send(command);
+        return TypedResults.NoContent();
+    }
+
+    // ─── PUT /api/Users/me/avatar ────────────────────────────────────────────
+
+    [EndpointSummary("Update avatar URL")]
+    [EndpointDescription(
+        "Sets the avatar URL for the current user's profile. " +
+        "The client is responsible for uploading the image and providing the final URL.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public static async Task<NoContent> UpdateAvatar(
+        [FromBody] UpdateAvatarCommand command,
         ISender sender)
     {
         await sender.Send(command);

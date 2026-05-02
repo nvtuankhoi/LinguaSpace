@@ -2,6 +2,7 @@ using LinguaSpace.Application.Rooms.Commands.CloseRoom;
 using LinguaSpace.Application.Rooms.Commands.CreateRoom;
 using LinguaSpace.Application.Rooms.Commands.JoinRoom;
 using LinguaSpace.Application.Rooms.Commands.LeaveRoom;
+using LinguaSpace.Application.Rooms.Commands.MuteParticipant;
 using LinguaSpace.Application.Rooms.Commands.UpdateRoom;
 using LinguaSpace.Application.Rooms.DTOs;
 using LinguaSpace.Application.Rooms.Queries.GetRoom;
@@ -27,6 +28,9 @@ public class Rooms : IEndpointGroup
         group.MapPost(JoinRoom, "{roomId}/join").RequireAuthorization();
         group.MapPost(LeaveRoom, "{roomId}/leave").RequireAuthorization();
         group.MapDelete(CloseRoom, "{roomId}").RequireAuthorization();
+
+        // ─── Moderation ───────────────────────────────────────────────────────
+        group.MapPost(MuteParticipant, "{roomId}/mute/{targetUserId}").RequireAuthorization();
     }
 
     // ─── GET /api/Rooms?languageCode=&roomType=&page=&pageSize= ─────────────
@@ -146,10 +150,30 @@ public class Rooms : IEndpointGroup
         return TypedResults.NoContent();
     }
 
+    // ─── POST /api/Rooms/{roomId}/mute/{targetUserId} ────────────────────────
+
+    [EndpointSummary("Mute/unmute a participant")]
+    [EndpointDescription(
+        "Sets the mute state of a participant. Only the room host can call this.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public static async Task<NoContent> MuteParticipant(
+        [FromRoute] int roomId,
+        [FromRoute] string targetUserId,
+        [FromBody] MuteParticipantBody body,
+        ISender sender)
+    {
+        await sender.Send(new MuteParticipantCommand(roomId, targetUserId, body.Mute));
+        return TypedResults.NoContent();
+    }
+
     // ─── Request body records ─────────────────────────────────────────────────
 
     /// <summary>
     /// Body for UpdateRoom. Separate from UpdateRoomCommand because roomId comes from route.
     /// </summary>
     public record UpdateRoomBody(string Title, string? Description, int MaxParticipants);
+
+    public record MuteParticipantBody(bool Mute);
 }

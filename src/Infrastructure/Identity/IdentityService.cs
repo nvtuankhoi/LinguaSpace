@@ -141,4 +141,65 @@ public class IdentityService : IIdentityService
 
         return result.ToApplicationResult();
     }
+
+    // ─── Email verification ───────────────────────────────────────────────────
+
+    public async Task<string> GenerateEmailVerificationTokenAsync(string userId)
+    {
+        ApplicationUser user = await _userManager.FindByIdAsync(userId)
+            ?? throw new InvalidOperationException($"User {userId} not found.");
+
+        return await _userManager.GenerateEmailConfirmationTokenAsync(user);
+    }
+
+    public async Task<Result> VerifyEmailAsync(string userId, string token)
+    {
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return Result.Failure(["User not found."]);
+        }
+
+        IdentityResult result = await _userManager.ConfirmEmailAsync(user, token);
+
+        return result.ToApplicationResult();
+    }
+
+    public async Task<bool> IsEmailConfirmedAsync(string userId)
+    {
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
+
+        return user?.EmailConfirmed ?? false;
+    }
+
+    // ─── Password reset ───────────────────────────────────────────────────────
+
+    public async Task<(string Token, string UserId)?> GeneratePasswordResetTokenAsync(string email)
+    {
+        ApplicationUser? user = await _userManager.FindByEmailAsync(email);
+
+        if (user is null)
+        {
+            return null;
+        }
+
+        string token = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+        return (token, user.Id);
+    }
+
+    public async Task<Result> ResetPasswordAsync(string userId, string token, string newPassword)
+    {
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return Result.Failure(["User not found."]);
+        }
+
+        IdentityResult result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+
+        return result.ToApplicationResult();
+    }
 }

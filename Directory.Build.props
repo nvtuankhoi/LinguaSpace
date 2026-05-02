@@ -4,7 +4,9 @@
     <TargetFramework>net10.0</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <!-- Suppress NU1608 until Npgsql.EntityFrameworkCore.PostgreSQL 10.0.0 is released -->
-    <WarningsNotAsErrors>NU1608</WarningsNotAsErrors>
+    <!-- Suppress NU1902 OpenTelemetry vulnerability warnings — tracked for upgrade in Phase 2 -->
+    <WarningsNotAsErrors>NU1608;NU1902</WarningsNotAsErrors>
+    <NoWarn>$(NoWarn);NU1902</NoWarn>
     <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

@@ -25,4 +25,26 @@ public interface IIdentityService
     Task<string?> GetUserIdByRefreshTokenHashAsync(string tokenHash, DateTimeOffset now);
 
     Task<Result> DeleteUserAsync(string userId);
+
+    // ─── Email verification ───────────────────────────────────────────────────
+
+    /// <summary>Generates an ASP.NET Identity email confirmation token for the user.</summary>
+    Task<string> GenerateEmailVerificationTokenAsync(string userId);
+
+    /// <summary>Confirms the user's email with the provided token. Returns failure if token invalid.</summary>
+    Task<Result> VerifyEmailAsync(string userId, string token);
+
+    /// <summary>Returns true if the user's email is confirmed.</summary>
+    Task<bool> IsEmailConfirmedAsync(string userId);
+
+    // ─── Password reset ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Generates a password reset token. Returns (token, userId) if email exists, null userId if not found.
+    /// Caller decides whether to reveal "not found" to the client (don't — return 200 either way).
+    /// </summary>
+    Task<(string Token, string UserId)?> GeneratePasswordResetTokenAsync(string email);
+
+    /// <summary>Resets password using a previously generated reset token.</summary>
+    Task<Result> ResetPasswordAsync(string userId, string token, string newPassword);
 }

@@ -12,4 +12,7 @@ public class RoomParticipant : BaseEntity
     public ParticipantRole Role { get; set; } = ParticipantRole.Speaker;
 
     public DateTimeOffset JoinedAt { get; set; }
+
+    /// <summary>True when the room host has muted this participant.</summary>
+    public bool IsMuted { get; set; }
 }

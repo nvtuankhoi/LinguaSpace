@@ -4,7 +4,9 @@ using LinguaSpace.Infrastructure.Auth;
 using LinguaSpace.Infrastructure.Cache;
 using LinguaSpace.Infrastructure.Data;
 using LinguaSpace.Infrastructure.Data.Interceptors;
+using LinguaSpace.Infrastructure.Email;
 using LinguaSpace.Infrastructure.Identity;
+using LinguaSpace.Infrastructure.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -138,5 +140,9 @@ public static class DependencyInjection
 
         // Singleton because IConnectionMultiplexer is Singleton (StackExchange.Redis best practice).
         builder.Services.AddSingleton<ICacheService, RedisCacheService>();
+
+        // Transient: email and storage services are stateless, per-request is fine.
+        builder.Services.AddTransient<IEmailService, ConsoleEmailService>();
+        builder.Services.AddTransient<IStorageService, LocalStorageService>();
     }
 }
