@@ -112,11 +112,12 @@ public static class DependencyInjection
         builder.Services.AddAuthorizationBuilder();
 
         // ─── Redis ────────────────────────────────────────────────────────────
-        // Register IConnectionMultiplexer directly. When running via Aspire AppHost,
-        // the connection string is injected from the Redis container.
-        // When running standalone, it reads from appsettings.json ConnectionStrings.
-        string? redisConnectionString = builder.Configuration.GetConnectionString(Services.Cache);
-        Guard.Against.Null(redisConnectionString, message: $"Connection string '{Services.Cache}' not found.");
+        // When running via Aspire AppHost, the connection string is injected from the Redis container.
+        // When running standalone, falls back to "localhost:6379,abortConnect=false" from appsettings.json.
+        // abortConnect=false means startup won't throw even if Redis is unreachable at launch.
+        string redisConnectionString =
+            builder.Configuration.GetConnectionString(Services.Cache)
+            ?? "localhost:6379,abortConnect=false";
 
         // IConnectionMultiplexer is thread-safe and designed to be reused (Singleton).
         // ConnectionMultiplexer.Connect is the StackExchange.Redis connection factory.
