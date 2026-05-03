@@ -7,7 +7,10 @@ public class RoomMediaSessionConfiguration : IEntityTypeConfiguration<RoomMediaS
 {
     public void Configure(EntityTypeBuilder<RoomMediaSession> builder)
     {
-        builder.HasIndex(s => new { s.RoomId, s.UserId });
+        builder.HasIndex(s => new { s.RoomId, s.JoinedAt })
+            .HasDatabaseName("IX_RoomMediaSessions_RoomId_JoinedAt");
+        builder.HasIndex(s => new { s.UserId, s.JoinedAt })
+            .HasDatabaseName("IX_RoomMediaSessions_UserId_JoinedAt");
 
         builder.Property(s => s.UserId).IsRequired().HasMaxLength(450);
 

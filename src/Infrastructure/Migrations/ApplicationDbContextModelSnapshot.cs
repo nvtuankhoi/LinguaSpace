@@ -140,8 +140,13 @@ namespace LinguaSpace.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("LastMessageAt")
+                        .IsDescending()
+                        .HasDatabaseName("IX_Conversations_LastMessageAt");
+
                     b.HasIndex("User1Id", "User2Id")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("IX_Conversations_User1Id_User2Id");
 
                     b.ToTable("Conversations");
                 });
@@ -568,7 +573,8 @@ namespace LinguaSpace.Infrastructure.Migrations
 
                     b.HasIndex("HostId");
 
-                    b.HasIndex("Status", "LanguageCode");
+                    b.HasIndex("RoomType", "Status", "LanguageCode")
+                        .HasDatabaseName("IX_Rooms_Type_Status_LanguageCode");
 
                     b.ToTable("Rooms");
                 });
@@ -603,7 +609,11 @@ namespace LinguaSpace.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RoomId", "UserId");
+                    b.HasIndex("RoomId", "JoinedAt")
+                        .HasDatabaseName("IX_RoomMediaSessions_RoomId_JoinedAt");
+
+                    b.HasIndex("UserId", "JoinedAt")
+                        .HasDatabaseName("IX_RoomMediaSessions_UserId_JoinedAt");
 
                     b.ToTable("RoomMediaSessions");
                 });

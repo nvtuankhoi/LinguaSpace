@@ -59,6 +59,9 @@ public class SendFriendRequestCommandHandler : IRequestHandler<SendFriendRequest
         _context.Friendships.Add(friendship);
         await _context.SaveChangesAsync(cancellationToken);
 
+        friendship.AddDomainEvent(new Domain.Events.FriendRequestSentEvent(friendship.Id, requesterId, request.AddresseeId));
+        await _context.SaveChangesAsync(cancellationToken);
+
         return friendship.Id;
     }
 }

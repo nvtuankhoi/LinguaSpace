@@ -145,5 +145,14 @@ public static class DependencyInjection
         // Transient: email and storage services are stateless, per-request is fine.
         builder.Services.AddTransient<IEmailService, ConsoleEmailService>();
         builder.Services.AddTransient<IStorageService, LocalStorageService>();
+
+        // ─── LiveKit SFU ──────────────────────────────────────────────────────
+        builder.Services.AddTransient<ISfuService, LinguaSpace.Infrastructure.Media.LiveKitService>();
+
+        // ─── SignalR Notification + Presence ─────────────────────────────────
+        builder.Services.AddTransient<INotificationService, LinguaSpace.Infrastructure.Notifications.SignalRNotificationService>();
+
+        // ─── Firebase Cloud Messaging (FCM) ───────────────────────────────────
+        builder.Services.AddTransient<IPushNotificationService, LinguaSpace.Infrastructure.PushNotifications.FcmPushNotificationService>();
     }
 }

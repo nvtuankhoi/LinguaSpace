@@ -31,4 +31,10 @@ public static class Services
     /// Used as the SignalR backplane and distributed cache.
     /// </summary>
     public const string Cache = "cache";
+
+    /// <summary>
+    /// The name of the LiveKit SFU service used for voice/video.
+    /// Running as a local dev container via Aspire.
+    /// </summary>
+    public const string LiveKit = "livekit";
 }

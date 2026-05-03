@@ -7,8 +7,9 @@ public class RoomConfiguration : IEntityTypeConfiguration<Room>
 {
     public void Configure(EntityTypeBuilder<Room> builder)
     {
-        // Composite index for the primary list/filter query
-        builder.HasIndex(r => new { r.Status, r.LanguageCode });
+        // Composite index for the primary list/filter query (includes RoomType for type-based filtering)
+        builder.HasIndex(r => new { r.RoomType, r.Status, r.LanguageCode })
+            .HasDatabaseName("IX_Rooms_Type_Status_LanguageCode");
         builder.HasIndex(r => r.HostId);
 
         builder.Property(r => r.Title).IsRequired().HasMaxLength(100);

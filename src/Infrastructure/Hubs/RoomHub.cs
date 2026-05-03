@@ -64,6 +64,9 @@ public class RoomHub : Hub
 
     // ─── Server → Clients (called from outside Hub, e.g. from EventHandlers) ──
     // These are not Hub methods — callers use IHubContext<RoomHub>.
+    // Client events: UserJoinedRoom, UserLeftRoom, ReceiveMessage
+    // Media events:  UserJoinedMedia, UserLeftMedia, ActiveSpeakerChanged(speakerIds[])
+    //                ScreenShareStarted(userId), ScreenShareStopped(userId)
 
     // ─── Lifecycle ───────────────────────────────────────────────────────────
 

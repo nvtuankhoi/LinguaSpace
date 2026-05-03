@@ -65,6 +65,21 @@ public class PresenceHub : Hub
         await base.OnDisconnectedAsync(exception);
     }
 
+    // ─── Client-callable methods ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Called by clients every ~3 minutes to renew the Redis presence TTL.
+    /// This prevents the key from expiring while the user is still connected.
+    /// </summary>
+    public async Task Heartbeat()
+    {
+        if (_user.Id is not null)
+        {
+            IDatabase db = _redis.GetDatabase();
+            await db.KeyExpireAsync(PresenceKey(_user.Id), TimeSpan.FromMinutes(10));
+        }
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
     private async Task UpdateDbPresenceAsync(string userId, bool isOnline)

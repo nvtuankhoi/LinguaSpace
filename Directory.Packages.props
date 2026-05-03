@@ -52,5 +52,7 @@
     <PackageVersion Include="Aspire.StackExchange.Redis" Version="13.2.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.5" />
     <PackageVersion Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="10.0.5" />
+    <PackageVersion Include="Livekit.Server.Sdk.Dotnet" Version="1.2.1" />
+    <PackageVersion Include="FirebaseAdmin" Version="3.5.0" />
   </ItemGroup>
 </Project>
