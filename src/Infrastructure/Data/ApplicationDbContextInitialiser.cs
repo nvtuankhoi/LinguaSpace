@@ -1,4 +1,5 @@
 using LinguaSpace.Domain.Constants;
+using LinguaSpace.Domain.Entities;
 using LinguaSpace.Infrastructure.Identity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
@@ -83,6 +84,41 @@ public class ApplicationDbContextInitialiser
                 await _userManager.AddToRolesAsync(administrator, new[] { administratorRole.Name });
             }
         }
+
+        // Seed badge master data (idempotent — only insert if code doesn't exist)
+        await SeedBadgesAsync();
+    }
+
+    private async Task SeedBadgesAsync()
+    {
+        (string Code, string Name, string Description, string Condition)[] badgeData =
+        [
+            ("FIRST_ROOM",  "First Steps",       "Joined your first room",              "Join any room for the first time"),
+            ("STREAK_3",    "On a Roll",          "3-day activity streak",               "Maintain a 3-day streak"),
+            ("STREAK_7",    "Dedicated Learner",  "7-day activity streak",               "Maintain a 7-day streak"),
+            ("STREAK_30",   "Language Champion",  "30-day activity streak",              "Maintain a 30-day streak"),
+            ("XP_100",      "Getting Started",    "Earned 100 XP total",                 "Reach 100 total XP"),
+            ("XP_500",      "Enthusiast",         "Earned 500 XP total",                 "Reach 500 total XP"),
+            ("XP_1000",     "Expert",             "Earned 1000 XP total",                "Reach 1000 total XP"),
+        ];
+
+        HashSet<string> existingCodes = (await _context.Badges.Select(b => b.Code).ToListAsync()).ToHashSet();
+
+        foreach ((string code, string name, string description, string condition) in badgeData)
+        {
+            if (!existingCodes.Contains(code))
+            {
+                _context.Badges.Add(new Badge
+                {
+                    Code = code,
+                    Name = name,
+                    Description = description,
+                    Condition = condition,
+                });
+            }
+        }
+
+        await _context.SaveChangesAsync();
     }
 }
 

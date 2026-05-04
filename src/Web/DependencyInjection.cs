@@ -3,6 +3,8 @@ using LinguaSpace.Application.Common.Interfaces;
 using LinguaSpace.Infrastructure.Data;
 using LinguaSpace.Web.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -29,6 +31,36 @@ public static class DependencyInjection
             options.AddOperationTransformer<ApiExceptionOperationTransformer>();
             // IdentityApiOperationTransformer is removed — we no longer use MapIdentityApi
             options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+        });
+
+        // Rate limiting — two policies:
+        //  "api"  : 100 requests / 1 minute per IP (general)
+        //  "auth" : 10  requests / 1 minute per IP (sensitive auth endpoints)
+        builder.Services.AddRateLimiter(options =>
+        {
+            options.AddPolicy("api", httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        Window = TimeSpan.FromMinutes(1),
+                        PermitLimit = 100,
+                        QueueLimit = 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    }));
+
+            options.AddPolicy("auth", httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        Window = TimeSpan.FromMinutes(1),
+                        PermitLimit = 10,
+                        QueueLimit = 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    }));
+
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
         });
 
         // CORS: AllowAnyOrigin() + AllowCredentials() is INVALID (browser blocks it).

@@ -26,6 +26,14 @@ public interface IIdentityService
 
     Task<Result> DeleteUserAsync(string userId);
 
+    // ─── Moderation ───────────────────────────────────────────────────────────
+
+    /// <summary>Locks out a user account. Pass <c>null</c> for <paramref name="until"/> for a permanent ban.</summary>
+    Task<Result> LockoutUserAsync(string userId, DateTimeOffset? until);
+
+    /// <summary>Removes lockout, restoring normal access.</summary>
+    Task<Result> UnlockUserAsync(string userId);
+
     // ─── Email verification ───────────────────────────────────────────────────
 
     /// <summary>Generates an ASP.NET Identity email confirmation token for the user.</summary>

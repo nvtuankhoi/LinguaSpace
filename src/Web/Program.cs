@@ -39,6 +39,7 @@ app.UseExceptionHandler(options => { });
 // Authentication/Authorization middleware must be in this exact order
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.Map("/", () => Results.Redirect("/scalar"));
 

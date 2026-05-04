@@ -202,4 +202,38 @@ public class IdentityService : IIdentityService
 
         return result.ToApplicationResult();
     }
+
+    // ─── Moderation ───────────────────────────────────────────────────────────
+
+    public async Task<Result> LockoutUserAsync(string userId, DateTimeOffset? until)
+    {
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return Result.Failure(["User not found."]);
+        }
+
+        await _userManager.SetLockoutEnabledAsync(user, true);
+
+        IdentityResult result = await _userManager.SetLockoutEndDateAsync(
+            user,
+            until ?? DateTimeOffset.MaxValue);
+
+        return result.ToApplicationResult();
+    }
+
+    public async Task<Result> UnlockUserAsync(string userId)
+    {
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return Result.Failure(["User not found."]);
+        }
+
+        IdentityResult result = await _userManager.SetLockoutEndDateAsync(user, null);
+
+        return result.ToApplicationResult();
+    }
 }

@@ -26,16 +26,16 @@ public class Auth : IEndpointGroup
 
     public static void Map(RouteGroupBuilder group)
     {
-        group.MapPost(Register).AllowAnonymous();
-        group.MapPost(Login).AllowAnonymous();
-        group.MapPost(Refresh, "refresh").AllowAnonymous();
+        group.MapPost(Register).AllowAnonymous().RequireRateLimiting("auth");
+        group.MapPost(Login).AllowAnonymous().RequireRateLimiting("auth");
+        group.MapPost(Refresh, "refresh").AllowAnonymous().RequireRateLimiting("auth");
         group.MapPost(Logout, "logout").RequireAuthorization();
         group.MapGet(Me, "me").RequireAuthorization();
 
         // ─── Email verification ───────────────────────────────────────────────
         group.MapPost(VerifyEmail, "verify-email").RequireAuthorization();
-        group.MapPost(ForgotPassword, "forgot-password").AllowAnonymous();
-        group.MapPost(ResetPassword, "reset-password").AllowAnonymous();
+        group.MapPost(ForgotPassword, "forgot-password").AllowAnonymous().RequireRateLimiting("auth");
+        group.MapPost(ResetPassword, "reset-password").AllowAnonymous().RequireRateLimiting("auth");
 
         // ─── Push notification device token ──────────────────────────────────
         group.MapPost(RegisterDeviceToken, "device-token").RequireAuthorization();
