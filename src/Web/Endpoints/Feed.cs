@@ -4,6 +4,7 @@ using LinguaSpace.Application.Feed.Commands.CreatePost;
 using LinguaSpace.Application.Feed.Commands.DeleteComment;
 using LinguaSpace.Application.Feed.Commands.DeletePost;
 using LinguaSpace.Application.Feed.Commands.RemoveReaction;
+using LinguaSpace.Application.Feed.Commands.UpdateComment;
 using LinguaSpace.Application.Feed.Commands.UpdatePost;
 using LinguaSpace.Application.Feed.DTOs;
 using LinguaSpace.Application.Feed.Queries.GetExplore;
@@ -35,6 +36,7 @@ public class Feed : IEndpointGroup
         group.MapDelete(DeletePost, "posts/{postId}").RequireAuthorization();
 
         group.MapPost(CreateComment, "posts/{postId}/comments").RequireAuthorization();
+        group.MapPut(UpdateComment, "comments/{commentId}").RequireAuthorization();
         group.MapDelete(DeleteComment, "comments/{commentId}").RequireAuthorization();
 
         group.MapPost(AddReaction, "reactions").RequireAuthorization();
@@ -174,6 +176,22 @@ public class Feed : IEndpointGroup
         return TypedResults.Created($"/api/Feed/posts/{postId}/comments", commentId);
     }
 
+    // ─── PUT /api/Feed/comments/{commentId} ──────────────────────────────────
+
+    [EndpointSummary("Update a comment")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public static async Task<NoContent> UpdateComment(
+        [FromRoute] int commentId,
+        [FromBody] UpdateCommentBody body,
+        ISender sender)
+    {
+        await sender.Send(new UpdateCommentCommand(commentId, body.Content));
+        return TypedResults.NoContent();
+    }
+
     // ─── DELETE /api/Feed/comments/{commentId} ────────────────────────────────
 
     [EndpointSummary("Delete a comment")]
@@ -218,4 +236,5 @@ public class Feed : IEndpointGroup
 
     public record UpdatePostBody(string Content, string? LanguageCode);
     public record CreateCommentBody(string Content, int? ParentCommentId);
+    public record UpdateCommentBody(string Content);
 }

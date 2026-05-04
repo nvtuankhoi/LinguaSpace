@@ -1,6 +1,7 @@
 using LinguaSpace.Application.Rooms.Commands.CloseRoom;
 using LinguaSpace.Application.Rooms.Commands.CreateRoom;
 using LinguaSpace.Application.Rooms.Commands.JoinRoom;
+using LinguaSpace.Application.Rooms.Commands.KickParticipant;
 using LinguaSpace.Application.Rooms.Commands.LeaveRoom;
 using LinguaSpace.Application.Rooms.Commands.MuteParticipant;
 using LinguaSpace.Application.Rooms.Commands.UpdateRoom;
@@ -31,6 +32,7 @@ public class Rooms : IEndpointGroup
 
         // ─── Moderation ───────────────────────────────────────────────────────
         group.MapPost(MuteParticipant, "{roomId}/mute/{targetUserId}").RequireAuthorization();
+        group.MapDelete(KickParticipant, "{roomId}/kick/{targetUserId}").RequireAuthorization();
     }
 
     // ─── GET /api/Rooms?languageCode=&roomType=&page=&pageSize= ─────────────
@@ -176,4 +178,22 @@ public class Rooms : IEndpointGroup
     public record UpdateRoomBody(string Title, string? Description, int MaxParticipants);
 
     public record MuteParticipantBody(bool Mute);
+
+    // ─── POST /api/Rooms/{roomId}/mute/{targetUserId} ────────────────────────
+
+    // ─── DELETE /api/Rooms/{roomId}/kick/{targetUserId} ──────────────────────
+
+    [EndpointSummary("Kick a participant")]
+    [EndpointDescription("Removes a participant from the room via SFU and deletes their DB membership. Host only.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public static async Task<NoContent> KickParticipant(
+        [FromRoute] int roomId,
+        [FromRoute] string targetUserId,
+        ISender sender)
+    {
+        await sender.Send(new KickParticipantCommand(roomId, targetUserId));
+        return TypedResults.NoContent();
+    }
 }

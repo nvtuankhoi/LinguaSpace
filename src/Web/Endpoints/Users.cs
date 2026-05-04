@@ -4,9 +4,13 @@ using LinguaSpace.Application.Users.Commands.RemoveLanguage;
 using LinguaSpace.Application.Users.Commands.RespondFriendRequest;
 using LinguaSpace.Application.Users.Commands.SendFriendRequest;
 using LinguaSpace.Application.Users.Commands.UnfollowUser;
+using LinguaSpace.Application.Users.Commands.UnfriendUser;
 using LinguaSpace.Application.Users.Commands.UpdateAvatar;
 using LinguaSpace.Application.Users.Commands.UpdateProfile;
 using LinguaSpace.Application.Users.DTOs;
+using LinguaSpace.Application.Users.Queries.GetFollowers;
+using LinguaSpace.Application.Users.Queries.GetFollowing;
+using LinguaSpace.Application.Users.Queries.GetFriends;
 using LinguaSpace.Application.Users.Queries.GetUserProfile;
 using LinguaSpace.Application.Users.Queries.SearchUsers;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -38,6 +42,11 @@ public class Users : IEndpointGroup
         group.MapPut(RespondFriendRequest, "friend-requests/{requestId}").RequireAuthorization();
         group.MapPost(FollowUser, "{userId}/follow").RequireAuthorization();
         group.MapDelete(UnfollowUser, "{userId}/follow").RequireAuthorization();
+
+        group.MapGet(GetFriends, "{userId}/friends").RequireAuthorization();
+        group.MapGet(GetFollowers, "{userId}/followers").RequireAuthorization();
+        group.MapGet(GetFollowing, "{userId}/following").RequireAuthorization();
+        group.MapDelete(UnfriendUser, "{userId}/friendship").RequireAuthorization();
     }
 
     // ─── GET /api/Users/{userId} ─────────────────────────────────────────────
@@ -195,6 +204,63 @@ public class Users : IEndpointGroup
         ISender sender)
     {
         await sender.Send(new UnfollowUserCommand(userId));
+        return TypedResults.NoContent();
+    }
+
+    // ─── GET /api/Users/{userId}/friends ─────────────────────────────────────
+
+    [EndpointSummary("Get friends list")]
+    [EndpointDescription("Returns accepted friends for the specified user.")]
+    [ProducesResponseType(typeof(IList<UserSummaryDto>), StatusCodes.Status200OK)]
+    public static async Task<Ok<IList<UserSummaryDto>>> GetFriends(
+        [FromRoute] string userId,
+        ISender sender)
+    {
+        IList<UserSummaryDto> friends = await sender.Send(new GetFriendsQuery(userId));
+        return TypedResults.Ok(friends);
+    }
+
+    // ─── GET /api/Users/{userId}/followers ────────────────────────────────────
+
+    [EndpointSummary("Get followers list")]
+    [EndpointDescription("Returns users who follow the specified user.")]
+    [ProducesResponseType(typeof(IList<UserSummaryDto>), StatusCodes.Status200OK)]
+    public static async Task<Ok<IList<UserSummaryDto>>> GetFollowers(
+        [FromRoute] string userId,
+        ISender sender,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        IList<UserSummaryDto> followers = await sender.Send(new GetFollowersQuery(userId, page, pageSize));
+        return TypedResults.Ok(followers);
+    }
+
+    // ─── GET /api/Users/{userId}/following ────────────────────────────────────
+
+    [EndpointSummary("Get following list")]
+    [EndpointDescription("Returns users that the specified user is following.")]
+    [ProducesResponseType(typeof(IList<UserSummaryDto>), StatusCodes.Status200OK)]
+    public static async Task<Ok<IList<UserSummaryDto>>> GetFollowing(
+        [FromRoute] string userId,
+        ISender sender,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        IList<UserSummaryDto> following = await sender.Send(new GetFollowingQuery(userId, page, pageSize));
+        return TypedResults.Ok(following);
+    }
+
+    // ─── DELETE /api/Users/{userId}/friendship ────────────────────────────────
+
+    [EndpointSummary("Remove friendship")]
+    [EndpointDescription("Deletes the accepted friendship between the current user and the specified user.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public static async Task<NoContent> UnfriendUser(
+        [FromRoute] string userId,
+        ISender sender)
+    {
+        await sender.Send(new UnfriendUserCommand(userId));
         return TypedResults.NoContent();
     }
 
