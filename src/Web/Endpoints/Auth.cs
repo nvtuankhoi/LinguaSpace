@@ -1,6 +1,7 @@
 using LinguaSpace.Application.Auth.Commands.ForgotPassword;
 using LinguaSpace.Application.Auth.Commands.Login;
 using LinguaSpace.Application.Auth.Commands.Logout;
+using LinguaSpace.Application.Auth.Commands.OAuthLogin;
 using LinguaSpace.Application.Auth.Commands.RefreshToken;
 using LinguaSpace.Application.Auth.Commands.Register;
 using LinguaSpace.Application.Auth.Commands.RegisterDeviceToken;
@@ -39,6 +40,9 @@ public class Auth : IEndpointGroup
 
         // ─── Push notification device token ──────────────────────────────────
         group.MapPost(RegisterDeviceToken, "device-token").RequireAuthorization();
+
+        // ─── OAuth ───────────────────────────────────────────────────────────
+        group.MapPost(OAuthGoogle, "oauth/google").AllowAnonymous().RequireRateLimiting("auth");
     }
 
     // ─── POST /api/Auth/register ─────────────────────────────────────────────
@@ -201,6 +205,33 @@ public class Auth : IEndpointGroup
     {
         await sender.Send(new RegisterDeviceTokenCommand(body.FcmToken, body.Platform));
         return TypedResults.NoContent();
+    }
+
+    // ─── POST /api/Auth/oauth/google ─────────────────────────────────────────
+
+    [EndpointSummary("Login with Google OAuth")]
+    [EndpointDescription(
+        "Validates a Google ID token obtained by the client (via Google Sign-In SDK). " +
+        "Finds or creates the user account, then returns the same JWT + refresh cookie as a normal login. " +
+        "New OAuth accounts are automatically email-confirmed.")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public static async Task<Ok<object>> OAuthGoogle(
+        [FromBody] OAuthLoginCommand command,
+        ISender sender,
+        HttpResponse response)
+    {
+        LoginResult result = await sender.Send(command);
+
+        SetRefreshTokenCookie(response, result.RefreshToken);
+
+        return TypedResults.Ok<object>(new
+        {
+            result.AccessToken,
+            result.ExpiresIn,
+            result.UserId,
+            result.Email,
+        });
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

@@ -17,6 +17,7 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
     <PackageReference Include="Livekit.Server.Sdk.Dotnet" />
     <PackageReference Include="FirebaseAdmin" />
+    <PackageReference Include="Google.Apis.Auth" />
   </ItemGroup>
 
   <ItemGroup>

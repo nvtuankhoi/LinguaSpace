@@ -154,5 +154,8 @@ public static class DependencyInjection
 
         // ─── Firebase Cloud Messaging (FCM) ───────────────────────────────────
         builder.Services.AddTransient<IPushNotificationService, LinguaSpace.Infrastructure.PushNotifications.FcmPushNotificationService>();
+
+        // ─── Google OAuth token validation ────────────────────────────────────
+        builder.Services.AddTransient<IGoogleTokenValidator, LinguaSpace.Infrastructure.Auth.GoogleTokenValidator>();
     }
 }

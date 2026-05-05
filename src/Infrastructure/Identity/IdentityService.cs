@@ -135,6 +135,58 @@ public class IdentityService : IIdentityService
         return user != null ? await DeleteUserAsync(user) : Result.Success();
     }
 
+    // ─── External (OAuth) login ───────────────────────────────────────────────
+
+    public async Task<(string UserId, string Email)> FindOrCreateExternalUserAsync(
+        string email,
+        string loginProvider,
+        string providerKey,
+        string? displayName = null)
+    {
+        // 1. Try to find by external login entry
+        ApplicationUser? user = await _userManager.FindByLoginAsync(loginProvider, providerKey);
+
+        if (user is not null)
+        {
+            return (user.Id, user.Email!);
+        }
+
+        // 2. Try to find by email (user may have registered with email+password before)
+        user = await _userManager.FindByEmailAsync(email);
+
+        if (user is not null)
+        {
+            // Link the external login to the existing account
+            await _userManager.AddLoginAsync(
+                user,
+                new UserLoginInfo(loginProvider, providerKey, displayName ?? loginProvider));
+
+            return (user.Id, user.Email!);
+        }
+
+        // 3. Create a new account — no password, email already verified by OAuth provider
+        user = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            EmailConfirmed = true,
+        };
+
+        IdentityResult createResult = await _userManager.CreateAsync(user);
+
+        if (!createResult.Succeeded)
+        {
+            string[] errors = createResult.Errors.Select(e => e.Description).ToArray();
+            throw new InvalidOperationException($"Failed to create OAuth user: {string.Join("; ", errors)}");
+        }
+
+        await _userManager.AddLoginAsync(
+            user,
+            new UserLoginInfo(loginProvider, providerKey, displayName ?? loginProvider));
+
+        return (user.Id, user.Email!);
+    }
+
     private async Task<Result> DeleteUserAsync(ApplicationUser user)
     {
         IdentityResult result = await _userManager.DeleteAsync(user);

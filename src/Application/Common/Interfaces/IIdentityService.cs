@@ -55,4 +55,18 @@ public interface IIdentityService
 
     /// <summary>Resets password using a previously generated reset token.</summary>
     Task<Result> ResetPasswordAsync(string userId, string token, string newPassword);
+
+    // ─── External (OAuth) login ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Finds an existing user by external login (provider + providerKey),
+    /// or falls back to email lookup, or creates a new account if neither exists.
+    /// For OAuth providers — user has no password; email is already verified.
+    /// Returns (UserId, Email).
+    /// </summary>
+    Task<(string UserId, string Email)> FindOrCreateExternalUserAsync(
+        string email,
+        string loginProvider,
+        string providerKey,
+        string? displayName = null);
 }

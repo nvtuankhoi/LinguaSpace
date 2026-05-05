@@ -1,0 +1,43 @@
+meta {
+  name: OAuth Google Login
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/Auth/oauth/google
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "idToken": "{{googleIdToken}}"
+  }
+}
+
+docs {
+  # OAuth Google Login
+
+  Validates a Google ID token obtained by the frontend using the Google Sign-In SDK
+  (e.g. `google.accounts.id.initialize()` in Angular).
+
+  ## Flow
+  1. Frontend calls Google Sign-In → receives `id_token`
+  2. POST that token to this endpoint
+  3. Backend validates via Google.Apis.Auth, finds or creates the user account
+  4. Returns JWT access token + sets HttpOnly `refresh_token` cookie
+
+  ## Notes
+  - Set `{{googleIdToken}}` in your Bruno environment before testing
+  - New OAuth accounts are automatically email-confirmed
+  - If the email already exists (registered with email+password), the Google login
+    is linked to the existing account
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setEnvVar("accessToken", res.body.accessToken);
+    bru.setEnvVar("userId", res.body.userId);
+  }
+}
