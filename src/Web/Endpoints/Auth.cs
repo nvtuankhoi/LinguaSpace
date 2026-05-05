@@ -26,8 +26,8 @@ public class Auth : IEndpointGroup
 
     public static void Map(RouteGroupBuilder group)
     {
-        group.MapPost(Register).AllowAnonymous().RequireRateLimiting("auth");
-        group.MapPost(Login).AllowAnonymous().RequireRateLimiting("auth");
+        group.MapPost(Register, "register").AllowAnonymous().RequireRateLimiting("auth");
+        group.MapPost(Login, "login").AllowAnonymous().RequireRateLimiting("auth");
         group.MapPost(Refresh, "refresh").AllowAnonymous().RequireRateLimiting("auth");
         group.MapPost(Logout, "logout").RequireAuthorization();
         group.MapGet(Me, "me").RequireAuthorization();
