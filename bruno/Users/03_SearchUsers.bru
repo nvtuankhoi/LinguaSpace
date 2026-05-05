@@ -1,0 +1,23 @@
+meta {
+  name: Search Users
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/Users?query=test&languageCode=en&page=1&pageSize=10
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  Query params:
+  - query       : search term (display name / email)
+  - languageCode: filter by language (e.g. en, vi, ja)
+  - page        : page number (default 1)
+  - pageSize    : results per page (default 20)
+}

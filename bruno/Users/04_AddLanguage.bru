@@ -1,0 +1,28 @@
+meta {
+  name: Add Language
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/Users/me/languages
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "languageCode": "en",
+    "type": "Learning",
+    "level": "Intermediate"
+  }
+}
+
+docs {
+  type: "Native" | "Learning"
+  level: "Beginner" | "Elementary" | "Intermediate" | "UpperIntermediate" | "Advanced" | "Proficient"
+}

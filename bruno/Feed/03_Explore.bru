@@ -1,0 +1,16 @@
+meta {
+  name: Explore (Public Posts)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/Feed/explore?languageCode=en&pageSize=10
+  body: none
+  auth: none
+}
+
+docs {
+  Public endpoint — no auth needed.
+  Query params: languageCode, postType, beforeCursor (ISO 8601), pageSize
+}

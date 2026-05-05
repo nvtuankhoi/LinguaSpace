@@ -1,0 +1,15 @@
+meta {
+  name: Get Rooms
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/Rooms?languageCode=en&page=1&pageSize=10
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

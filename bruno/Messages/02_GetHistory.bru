@@ -1,0 +1,20 @@
+meta {
+  name: Get DM History
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/Messages/TARGET_USER_ID?page=1&pageSize=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  Replace TARGET_USER_ID with the other user's userId.
+  Returns paginated message history between the two users.
+}

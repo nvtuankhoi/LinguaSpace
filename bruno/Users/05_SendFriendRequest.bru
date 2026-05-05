@@ -1,0 +1,19 @@
+meta {
+  name: Send Friend Request
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/Users/TARGET_USER_ID/friend-request
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  Replace TARGET_USER_ID with the userId (string) of the user you want to add.
+}

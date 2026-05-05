@@ -1,0 +1,26 @@
+meta {
+  name: Send Message (DM)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/Messages
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "recipientId": "TARGET_USER_ID",
+    "content": "Hey! Want to practice together?"
+  }
+}
+
+docs {
+  Replace TARGET_USER_ID with the target user's userId string.
+}

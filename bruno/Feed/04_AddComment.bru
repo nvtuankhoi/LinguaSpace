@@ -1,0 +1,22 @@
+meta {
+  name: Add Comment
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/Feed/posts/{{postId}}/comments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "content": "Great post! Let's practice together.",
+    "parentCommentId": null
+  }
+}

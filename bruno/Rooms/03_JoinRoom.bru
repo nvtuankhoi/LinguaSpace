@@ -1,0 +1,21 @@
+meta {
+  name: Join Room
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/Rooms/{{roomId}}/join
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  Returns: { livekitToken, livekitUrl }
+  Use these to connect the LiveKit client SDK.
+  roomId env var is set automatically by Create Room.
+}

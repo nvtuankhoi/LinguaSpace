@@ -1,0 +1,23 @@
+meta {
+  name: Refresh Token
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/Auth/refresh
+  body: none
+  auth: none
+}
+
+docs {
+  Refresh token is stored in HttpOnly cookie "refresh_token" (set automatically by Login).
+  Send this request with cookies enabled — Bruno will forward the cookie automatically.
+  The new accessToken is returned in the response body.
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setEnvVar("accessToken", res.body.accessToken);
+  }
+}

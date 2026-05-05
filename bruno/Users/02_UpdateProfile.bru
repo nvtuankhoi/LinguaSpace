@@ -1,0 +1,23 @@
+meta {
+  name: Update Profile
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/api/Users/me/profile
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "displayName": "Test User",
+    "bio": "Language learner",
+    "timezone": "Asia/Ho_Chi_Minh"
+  }
+}

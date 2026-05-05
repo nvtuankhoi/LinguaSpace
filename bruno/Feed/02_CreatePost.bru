@@ -1,0 +1,35 @@
+meta {
+  name: Create Post
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/Feed/posts
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "content": "Hello! Anyone want to practice English?",
+    "languageCode": "en",
+    "type": "Text",
+    "visibility": "Public"
+  }
+}
+
+docs {
+  type: "Text" | "Audio" | "Video"
+  visibility: "Public" | "Friends" | "Private"
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("postId", res.body);
+  }
+}
