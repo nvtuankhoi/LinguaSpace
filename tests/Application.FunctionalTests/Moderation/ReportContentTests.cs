@@ -1,3 +1,4 @@
+using LinguaSpace.Application.Common.Models;
 using LinguaSpace.Application.Moderation.Commands.ReportContent;
 using LinguaSpace.Application.Moderation.DTOs;
 using LinguaSpace.Application.Moderation.Queries.GetReports;
@@ -48,7 +49,7 @@ public class ReportContentTests : TestBase
         // Switch to admin
         await TestApp.RunAsAdministratorAsync();
 
-        ReportSummaryDto summary = await TestApp.SendAsync(new GetReportsQuery());
+        PaginatedResult<ReportDto> summary = await TestApp.SendAsync(new GetReportsQuery());
 
         summary.TotalCount.ShouldBeGreaterThan(0);
         summary.Items[0].TargetType.ShouldBe("Post");

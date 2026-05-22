@@ -1,3 +1,4 @@
+using LinguaSpace.Application.Common.Models;
 using LinguaSpace.Application.Moderation.Commands.BanUser;
 using LinguaSpace.Application.Moderation.Commands.ReportContent;
 using LinguaSpace.Application.Moderation.Commands.ResolveReport;
@@ -44,14 +45,14 @@ public class Moderation : IEndpointGroup
 
     [EndpointSummary("Get moderation reports (admin)")]
     [EndpointDescription("Returns paginated reports. Defaults to Pending status. Admin only.")]
-    [ProducesResponseType(typeof(ReportSummaryDto), StatusCodes.Status200OK)]
-    public static async Task<Ok<ReportSummaryDto>> GetReports(
+    [ProducesResponseType(typeof(PaginatedResult<ReportDto>), StatusCodes.Status200OK)]
+    public static async Task<Ok<PaginatedResult<ReportDto>>> GetReports(
         ISender sender,
         [FromQuery] string? status = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        ReportSummaryDto result = await sender.Send(new GetReportsQuery(status, page, pageSize));
+        PaginatedResult<ReportDto> result = await sender.Send(new GetReportsQuery(status, page, pageSize));
         return TypedResults.Ok(result);
     }
 

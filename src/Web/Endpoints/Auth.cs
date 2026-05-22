@@ -10,8 +10,10 @@ using LinguaSpace.Application.Auth.Commands.RegisterDeviceToken;
 using LinguaSpace.Application.Auth.Commands.ResendEmailVerification;
 using LinguaSpace.Application.Auth.Commands.ResetPassword;
 using LinguaSpace.Application.Auth.Commands.RevokeAllSessions;
+using LinguaSpace.Application.Auth.Commands.RevokeSession;
 using LinguaSpace.Application.Auth.Commands.VerifyEmail;
 using LinguaSpace.Application.Auth.DTOs;
+using LinguaSpace.Application.Auth.Queries.GetActiveSessions;
 using LinguaSpace.Application.Auth.Queries.GetCurrentUser;
 using LinguaSpace.Domain.Enums;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -43,6 +45,8 @@ public class Auth : IEndpointGroup
         group.MapPost(ChangePassword, "change-password").RequireAuthorization();
         group.MapPost(ChangeEmail, "change-email").RequireAuthorization();
         group.MapDelete(RevokeAllSessions, "sessions").RequireAuthorization();
+        group.MapGet(GetActiveSessions, "sessions").RequireAuthorization();
+        group.MapDelete(RevokeSession, "sessions/{sessionId}").RequireAuthorization();
         group.MapPost(ForgotPassword, "forgot-password").AllowAnonymous().RequireRateLimiting("auth");
         group.MapPost(ResetPassword, "reset-password").AllowAnonymous().RequireRateLimiting("auth");
 
@@ -203,6 +207,27 @@ public class Auth : IEndpointGroup
     public static async Task<NoContent> RevokeAllSessions(ISender sender)
     {
         await sender.Send(new RevokeAllSessionsCommand());
+        return TypedResults.NoContent();
+    }
+
+    [EndpointSummary("Get active sessions")]
+    [EndpointDescription("Returns all non-revoked login sessions for the authenticated user, ordered by most recent activity.")]
+    [ProducesResponseType(typeof(IList<ActiveSessionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public static async Task<Ok<IList<ActiveSessionDto>>> GetActiveSessions(ISender sender)
+    {
+        IList<ActiveSessionDto> sessions = await sender.Send(new GetActiveSessionsQuery());
+        return TypedResults.Ok(sessions);
+    }
+
+    [EndpointSummary("Revoke a session")]
+    [EndpointDescription("Revokes a specific login session by its ID. Only the owner can revoke their own sessions.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public static async Task<NoContent> RevokeSession([FromRoute] int sessionId, ISender sender)
+    {
+        await sender.Send(new RevokeSessionCommand(sessionId));
         return TypedResults.NoContent();
     }
 

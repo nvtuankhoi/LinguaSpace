@@ -19,7 +19,7 @@ public class Notifications : IEndpointGroup
         group.MapGet(GetNotifications).RequireAuthorization();
         group.MapGet(GetUnreadCount, "unread-count").RequireAuthorization();
         group.MapPost(MarkAsRead, "read").RequireAuthorization();
-        group.MapDelete(DeleteNotifications, string.Empty).RequireAuthorization();
+        group.MapPost(DeleteNotifications, "delete-batch").RequireAuthorization();
     }
 
     [EndpointSummary("Get notifications")]
@@ -56,8 +56,8 @@ public class Notifications : IEndpointGroup
         return TypedResults.NoContent();
     }
 
-    [EndpointSummary("Delete notifications")]
-    [EndpointDescription("Deletes specific notifications by IDs, or all notifications if no IDs provided.")]
+    [EndpointSummary("Delete notifications (batch)")]
+    [EndpointDescription("Deletes specific notifications by IDs, or all notifications if no IDs provided. POST is used instead of DELETE to allow a request body.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public static async Task<NoContent> DeleteNotifications(
         ISender sender,

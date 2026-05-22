@@ -32,9 +32,9 @@ public class Feed : IEndpointGroup
         group.MapGet(GetExplore, "explore");
         group.MapGet(SearchPosts, "search");
         group.MapGet(GetUserPosts, "users/{userId}");
-        group.MapGet(GetPost, "posts/{postId}").RequireAuthorization();
-        group.MapGet(GetPostComments, "posts/{postId}/comments").RequireAuthorization();
-        group.MapGet(GetPostReactions, "posts/{postId}/reactions").RequireAuthorization();
+        group.MapGet(GetPost, "posts/{postId}");
+        group.MapGet(GetPostComments, "posts/{postId}/comments");
+        group.MapGet(GetPostReactions, "posts/{postId}/reactions");
 
         group.MapPost(CreatePost, "posts").RequireAuthorization();
         group.MapPut(UpdatePost, "posts/{postId}").RequireAuthorization();
@@ -44,8 +44,8 @@ public class Feed : IEndpointGroup
         group.MapPut(UpdateComment, "comments/{commentId}").RequireAuthorization();
         group.MapDelete(DeleteComment, "comments/{commentId}").RequireAuthorization();
 
-        group.MapPost(AddReaction, "reactions").RequireAuthorization();
-        group.MapDelete(RemoveReaction, "reactions/{targetType}/{targetId}").RequireAuthorization();
+        group.MapPost(AddReaction, "posts/{postId}/reactions").RequireAuthorization();
+        group.MapDelete(RemoveReaction, "posts/{postId}/reactions/{reactionType}").RequireAuthorization();
     }
 
     // ─── GET /api/Feed/explore ────────────────────────────────────────────────
@@ -142,13 +142,15 @@ public class Feed : IEndpointGroup
     // ─── GET /api/Feed/posts/{postId}/reactions ───────────────────────────────
 
     [EndpointSummary("Get post reactions")]
-    [EndpointDescription("Returns all users who reacted to a post.")]
-    [ProducesResponseType(typeof(IList<ReactionDetailDto>), StatusCodes.Status200OK)]
-    public static async Task<Ok<IList<ReactionDetailDto>>> GetPostReactions(
+    [EndpointDescription("Returns paginated list of users who reacted to a post, ordered by most recent.")]
+    [ProducesResponseType(typeof(PaginatedResult<ReactionDetailDto>), StatusCodes.Status200OK)]
+    public static async Task<Ok<PaginatedResult<ReactionDetailDto>>> GetPostReactions(
         [FromRoute] int postId,
-        ISender sender)
+        ISender sender,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
-        IList<ReactionDetailDto> reactions = await sender.Send(new GetPostReactionsQuery(postId));
+        PaginatedResult<ReactionDetailDto> reactions = await sender.Send(new GetPostReactionsQuery(postId, page, pageSize));
         return TypedResults.Ok(reactions);
     }
 
@@ -239,29 +241,32 @@ public class Feed : IEndpointGroup
         return TypedResults.NoContent();
     }
 
-    // ─── POST /api/Feed/reactions ─────────────────────────────────────────────
+    // ─── POST /api/Feed/posts/{postId}/reactions ──────────────────────────────
 
     [EndpointSummary("Add/toggle a reaction")]
+    [EndpointDescription("Adds a reaction to a post. Toggling the same type is idempotent; changing type removes the old one.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public static async Task<NoContent> AddReaction(
-        [FromBody] AddReactionCommand command,
+        [FromRoute] int postId,
+        [FromBody] AddReactionBody body,
         ISender sender)
     {
-        await sender.Send(command);
+        await sender.Send(new AddReactionCommand(postId, body.ReactionType));
         return TypedResults.NoContent();
     }
 
-    // ─── DELETE /api/Feed/reactions/{targetType}/{targetId} ──────────────────
+    // ─── DELETE /api/Feed/posts/{postId}/reactions/{reactionType} ─────────────
 
     [EndpointSummary("Remove a reaction")]
+    [EndpointDescription("Removes the authenticated user's reaction of the given type from the post. Idempotent.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public static async Task<NoContent> RemoveReaction(
-        [FromRoute] string targetType,
-        [FromRoute] int targetId,
+        [FromRoute] int postId,
+        [FromRoute] string reactionType,
         ISender sender)
     {
-        await sender.Send(new RemoveReactionCommand(targetId, targetType));
+        await sender.Send(new RemoveReactionCommand(postId, reactionType));
         return TypedResults.NoContent();
     }
 
@@ -270,4 +275,5 @@ public class Feed : IEndpointGroup
     public record UpdatePostBody(string Content, string? LanguageCode);
     public record CreateCommentBody(string Content, int? ParentCommentId);
     public record UpdateCommentBody(string Content);
+    public record AddReactionBody(string ReactionType);
 }

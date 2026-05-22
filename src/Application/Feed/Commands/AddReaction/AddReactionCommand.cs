@@ -5,8 +5,7 @@ using LinguaSpace.Domain.Events;
 namespace LinguaSpace.Application.Feed.Commands.AddReaction;
 
 public record AddReactionCommand(
-    int TargetId,
-    ReactionTargetType TargetType,
+    int PostId,
     string ReactionType) : IRequest;
 
 public class AddReactionCommandValidator : AbstractValidator<AddReactionCommand>
@@ -35,12 +34,12 @@ public class AddReactionCommandHandler : IRequestHandler<AddReactionCommand>
     {
         string userId = _currentUser.Id ?? throw new UnauthorizedAccessException();
 
-        ReactionTargetType targetType = request.TargetType;
+        ReactionTargetType targetType = ReactionTargetType.Post;
         Enum.TryParse(request.ReactionType, ignoreCase: true, out ReactionType reactionType);
 
         // Idempotent: if same type already exists, do nothing
         bool exists = await _context.Reactions.AnyAsync(
-            r => r.TargetId == request.TargetId
+            r => r.TargetId == request.PostId
               && r.TargetType == targetType
               && r.UserId == userId
               && r.Type == reactionType,
@@ -53,7 +52,7 @@ public class AddReactionCommandHandler : IRequestHandler<AddReactionCommand>
 
         // Remove any previous reaction of a different type on the same target (toggle)
         Reaction? existing = await _context.Reactions.FirstOrDefaultAsync(
-            r => r.TargetId == request.TargetId
+            r => r.TargetId == request.PostId
               && r.TargetType == targetType
               && r.UserId == userId,
             cancellationToken);
@@ -61,12 +60,12 @@ public class AddReactionCommandHandler : IRequestHandler<AddReactionCommand>
         if (existing is not null)
         {
             _context.Reactions.Remove(existing);
-            await DecrementLikeCountAsync(request.TargetId, targetType, cancellationToken);
+            await DecrementLikeCountAsync(request.PostId, cancellationToken);
         }
 
         Reaction reaction = new()
         {
-            TargetId = request.TargetId,
+            TargetId = request.PostId,
             TargetType = targetType,
             UserId = userId,
             Type = reactionType,
@@ -76,30 +75,16 @@ public class AddReactionCommandHandler : IRequestHandler<AddReactionCommand>
         _context.Reactions.Add(reaction);
         await _context.SaveChangesAsync(cancellationToken);
 
-        reaction.AddDomainEvent(new ReactionAddedEvent(reaction.Id, request.TargetId, request.TargetType.ToString(), userId));
+        reaction.AddDomainEvent(new ReactionAddedEvent(reaction.Id, request.PostId, targetType.ToString(), userId));
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task DecrementLikeCountAsync(
-        int targetId,
-        ReactionTargetType targetType,
-        CancellationToken cancellationToken)
+    private async Task DecrementLikeCountAsync(int postId, CancellationToken cancellationToken)
     {
-        if (targetType == ReactionTargetType.Post)
+        Post? post = await _context.Posts.FindAsync([postId], cancellationToken);
+        if (post is not null && post.LikeCount > 0)
         {
-            Post? post = await _context.Posts.FindAsync([targetId], cancellationToken);
-            if (post is not null && post.LikeCount > 0)
-            {
-                post.LikeCount--;
-            }
-        }
-        else
-        {
-            Comment? comment = await _context.Comments.FindAsync([targetId], cancellationToken);
-            if (comment is not null && comment.LikeCount > 0)
-            {
-                comment.LikeCount--;
-            }
+            post.LikeCount--;
         }
     }
 }

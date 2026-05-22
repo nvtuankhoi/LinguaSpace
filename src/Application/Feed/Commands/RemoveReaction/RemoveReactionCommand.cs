@@ -4,7 +4,7 @@ using LinguaSpace.Application.Common.Security;
 namespace LinguaSpace.Application.Feed.Commands.RemoveReaction;
 
 [Authorize]
-public record RemoveReactionCommand(int TargetId, string TargetType) : IRequest;
+public record RemoveReactionCommand(int PostId, string ReactionType) : IRequest;
 
 public class RemoveReactionCommandHandler : IRequestHandler<RemoveReactionCommand>
 {
@@ -21,15 +21,18 @@ public class RemoveReactionCommandHandler : IRequestHandler<RemoveReactionComman
     {
         string userId = _currentUser.Id ?? throw new UnauthorizedAccessException();
 
-        if (!Enum.TryParse(request.TargetType, ignoreCase: true, out ReactionTargetType targetType))
+        if (!Enum.TryParse(request.ReactionType, ignoreCase: true, out ReactionType reactionType))
         {
             throw new ValidationException([
-                new FluentValidation.Results.ValidationFailure(nameof(request.TargetType), "Invalid TargetType.")
+                new FluentValidation.Results.ValidationFailure(nameof(request.ReactionType), "Invalid ReactionType.")
             ]);
         }
 
         Reaction? reaction = await _context.Reactions.FirstOrDefaultAsync(
-            r => r.TargetId == request.TargetId && r.TargetType == targetType && r.UserId == userId,
+            r => r.TargetId == request.PostId
+              && r.TargetType == ReactionTargetType.Post
+              && r.UserId == userId
+              && r.Type == reactionType,
             cancellationToken);
 
         if (reaction is null)
@@ -39,22 +42,10 @@ public class RemoveReactionCommandHandler : IRequestHandler<RemoveReactionComman
 
         _context.Reactions.Remove(reaction);
 
-        // Decrement count on parent
-        if (targetType == ReactionTargetType.Post)
+        Post? post = await _context.Posts.FindAsync([request.PostId], cancellationToken);
+        if (post is not null && post.LikeCount > 0)
         {
-            Post? post = await _context.Posts.FindAsync([request.TargetId], cancellationToken);
-            if (post is not null && post.LikeCount > 0)
-            {
-                post.LikeCount--;
-            }
-        }
-        else
-        {
-            Comment? comment = await _context.Comments.FindAsync([request.TargetId], cancellationToken);
-            if (comment is not null && comment.LikeCount > 0)
-            {
-                comment.LikeCount--;
-            }
+            post.LikeCount--;
         }
 
         await _context.SaveChangesAsync(cancellationToken);

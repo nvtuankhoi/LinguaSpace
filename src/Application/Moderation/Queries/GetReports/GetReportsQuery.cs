@@ -1,4 +1,5 @@
 using LinguaSpace.Application.Common.Interfaces;
+using LinguaSpace.Application.Common.Models;
 using LinguaSpace.Application.Common.Security;
 using LinguaSpace.Application.Moderation.DTOs;
 using LinguaSpace.Domain.Constants;
@@ -10,10 +11,10 @@ namespace LinguaSpace.Application.Moderation.Queries.GetReports;
 public record GetReportsQuery(
     string? Status = null,
     int Page = 1,
-    int PageSize = 20) : IRequest<ReportSummaryDto>;
+    int PageSize = 20) : IRequest<PaginatedResult<ReportDto>>;
 
 [Authorize(Roles = Roles.Administrator)]
-public class GetReportsQueryHandler : IRequestHandler<GetReportsQuery, ReportSummaryDto>
+public class GetReportsQueryHandler : IRequestHandler<GetReportsQuery, PaginatedResult<ReportDto>>
 {
     private readonly IApplicationDbContext _context;
 
@@ -22,7 +23,7 @@ public class GetReportsQueryHandler : IRequestHandler<GetReportsQuery, ReportSum
         _context = context;
     }
 
-    public async Task<ReportSummaryDto> Handle(GetReportsQuery request, CancellationToken cancellationToken)
+    public async Task<PaginatedResult<ReportDto>> Handle(GetReportsQuery request, CancellationToken cancellationToken)
     {
         IQueryable<Report> query = _context.Reports;
 
@@ -55,6 +56,6 @@ public class GetReportsQueryHandler : IRequestHandler<GetReportsQuery, ReportSum
                 r.ResolvedBy))
             .ToListAsync(cancellationToken);
 
-        return new ReportSummaryDto(items, totalCount, request.Page, request.PageSize);
+        return new PaginatedResult<ReportDto>(items, totalCount, request.Page, request.PageSize, (request.Page - 1) * request.PageSize + items.Count < totalCount);
     }
 }

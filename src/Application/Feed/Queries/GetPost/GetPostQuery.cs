@@ -5,7 +5,6 @@ using LinguaSpace.Application.Feed.DTOs;
 
 namespace LinguaSpace.Application.Feed.Queries.GetPost;
 
-[Authorize]
 public record GetPostQuery(int PostId) : IRequest<PostDto?>;
 
 public class GetPostQueryHandler : IRequestHandler<GetPostQuery, PostDto?>

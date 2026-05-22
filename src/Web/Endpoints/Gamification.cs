@@ -4,6 +4,7 @@ using LinguaSpace.Application.Gamification.Queries.GetMyBadges;
 using LinguaSpace.Application.Gamification.Queries.GetMyXP;
 using LinguaSpace.Application.Gamification.Queries.GetUserBadges;
 using LinguaSpace.Application.Gamification.Queries.GetUserXP;
+using LinguaSpace.Application.Gamification.Queries.GetXpHistory;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,6 +21,7 @@ public class Gamification : IEndpointGroup
         group.MapGet(GetLeaderboard, "leaderboard");
         group.MapGet(GetMyXp, "me/xp").RequireAuthorization();
         group.MapGet(GetMyBadges, "me/badges").RequireAuthorization();
+        group.MapGet(GetXpHistory, "me/xp/history").RequireAuthorization();
         group.MapGet(GetUserXp, "users/{userId}/xp").RequireAuthorization();
         group.MapGet(GetUserBadges, "users/{userId}/badges").RequireAuthorization();
     }
@@ -58,6 +60,18 @@ public class Gamification : IEndpointGroup
     {
         IList<BadgeDto> badges = await sender.Send(new GetMyBadgesQuery());
         return TypedResults.Ok(badges);
+    }
+
+    [EndpointSummary("Get my XP history")]
+    [EndpointDescription("Returns daily XP breakdown for the specified period (week or month), showing what was earned each day.")]
+    [ProducesResponseType(typeof(IList<XpDailyDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public static async Task<Ok<IList<XpDailyDto>>> GetXpHistory(
+        ISender sender,
+        [FromQuery] string period = "week")
+    {
+        IList<XpDailyDto> history = await sender.Send(new GetXpHistoryQuery(period));
+        return TypedResults.Ok(history);
     }
 
     [EndpointSummary("Get user XP summary")]

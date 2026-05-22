@@ -37,6 +37,7 @@ public static class DependencyInjection
             options.AddOperationTransformer<BearerSecurityOperationTransformer>();
             // IdentityApiOperationTransformer is removed — we no longer use MapIdentityApi
             options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+            options.AddDocumentTransformer<ServerUrlDocumentTransformer>();
         });
 
         // Rate limiting — two policies:

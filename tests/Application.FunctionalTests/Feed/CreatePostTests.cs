@@ -135,7 +135,7 @@ public class CreatePostTests : TestBase
         int postId = await TestApp.SendAsync(new CreatePostCommand(
             "React to me", "Text", null, null, null, null));
 
-        await TestApp.SendAsync(new AddReactionCommand(postId, ReactionTargetType.Post, "Like"));
+        await TestApp.SendAsync(new AddReactionCommand(postId, "Like"));
 
         Post? post = await TestApp.FindAsync<Post>(postId);
         post.ShouldNotBeNull();

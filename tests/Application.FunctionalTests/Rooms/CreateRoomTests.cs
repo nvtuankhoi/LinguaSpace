@@ -97,7 +97,7 @@ public class CreateRoomTests : TestBase
             RoomType: RoomType.TextOnly));
 
         PaginatedResult<RoomSummaryDto> rooms = await TestApp.SendAsync(
-            new GetRoomsQuery(LanguageCode: null, RoomType: null));
+            new GetRoomsQuery(LanguageCode: null, RoomType: null, Q: null));
 
         rooms.Items.Count.ShouldBe(1);
         rooms.Items[0].Title.ShouldBe("Visible Room");
@@ -115,7 +115,7 @@ public class CreateRoomTests : TestBase
             "French Room", null, "fr", 10, RoomType.TextOnly));
 
         PaginatedResult<RoomSummaryDto> englishRooms = await TestApp.SendAsync(
-            new GetRoomsQuery(LanguageCode: "en", RoomType: null));
+            new GetRoomsQuery(LanguageCode: "en", RoomType: null, Q: null));
 
         englishRooms.Items.Count.ShouldBe(1);
         englishRooms.Items[0].Title.ShouldBe("English Room");

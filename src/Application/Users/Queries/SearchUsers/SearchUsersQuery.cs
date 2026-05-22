@@ -5,7 +5,6 @@ using LinguaSpace.Application.Users.DTOs;
 
 namespace LinguaSpace.Application.Users.Queries.SearchUsers;
 
-[Authorize]
 public record SearchUsersQuery(string? Term, string? LanguageCode, int Page = 1, int PageSize = 20)
     : IRequest<PaginatedResult<UserSummaryDto>>;
 

@@ -6,7 +6,7 @@ using LinguaSpace.Application.Rooms.DTOs;
 namespace LinguaSpace.Application.Rooms.Queries.GetRooms;
 
 [Authorize]
-public record GetRoomsQuery(string? LanguageCode, string? RoomType, int Page = 1, int PageSize = 20)
+public record GetRoomsQuery(string? LanguageCode, string? RoomType, string? Q, int Page = 1, int PageSize = 20)
     : IRequest<PaginatedResult<RoomSummaryDto>>;
 
 public class GetRoomsQueryHandler : IRequestHandler<GetRoomsQuery, PaginatedResult<RoomSummaryDto>>
@@ -31,6 +31,11 @@ public class GetRoomsQueryHandler : IRequestHandler<GetRoomsQuery, PaginatedResu
         if (!string.IsNullOrWhiteSpace(request.LanguageCode))
         {
             query = query.Where(r => r.LanguageCode == request.LanguageCode);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Q))
+        {
+            query = query.Where(r => r.Title.Contains(request.Q));
         }
 
         if (!string.IsNullOrWhiteSpace(request.RoomType)

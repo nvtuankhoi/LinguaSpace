@@ -20,7 +20,12 @@ public class Webhooks : IEndpointGroup
     /// Content-Type is application/webhook+json (LiveKit-specific).
     /// </summary>
     [EndpointSummary("LiveKit webhook receiver")]
+    [EndpointDescription(
+        "Receives LiveKit signed JSON webhook events. The Authorization header must contain the HMAC-SHA256 " +
+        "signature of the raw body. Events include: participant_joined, participant_left, track_published, " +
+        "track_unpublished, room_finished. Returns 401 if signature validation fails.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public static async Task<IResult> LiveKit(
         HttpRequest httpRequest,
         ISender sender)

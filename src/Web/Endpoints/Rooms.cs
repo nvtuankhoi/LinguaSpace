@@ -42,20 +42,21 @@ public class Rooms : IEndpointGroup
         group.MapDelete(KickParticipant, "{roomId}/kick/{targetUserId}").RequireAuthorization();
     }
 
-    // ─── GET /api/Rooms?languageCode=&roomType=&page=&pageSize= ─────────────
+    // ─── GET /api/Rooms?languageCode=&roomType=&q=&page=&pageSize= ──────────
 
     [EndpointSummary("List active rooms")]
-    [EndpointDescription("Returns paginated list of active rooms. Filter by language and room type.")]
+    [EndpointDescription("Returns paginated list of active rooms. Filter by language, room type, and optional keyword search.")]
     [ProducesResponseType(typeof(PaginatedResult<RoomSummaryDto>), StatusCodes.Status200OK)]
     public static async Task<Ok<PaginatedResult<RoomSummaryDto>>> GetRooms(
         ISender sender,
         [FromQuery] string? languageCode = null,
         [FromQuery] string? roomType = null,
+        [FromQuery] string? q = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
         PaginatedResult<RoomSummaryDto> results = await sender.Send(
-            new GetRoomsQuery(languageCode, roomType, page, pageSize));
+            new GetRoomsQuery(languageCode, roomType, q, page, pageSize));
 
         return TypedResults.Ok(results);
     }

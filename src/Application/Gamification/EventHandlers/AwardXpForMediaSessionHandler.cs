@@ -46,6 +46,14 @@ public class AwardXpForMediaSessionHandler : INotificationHandler<ParticipantLef
         userXp.TotalXp += xpAmount;
         BadgeAwarder.UpdateStreak(userXp);
 
+        _context.XpTransactions.Add(new XpTransaction
+        {
+            UserId = notification.UserId,
+            Amount = xpAmount,
+            Reason = $"Voice session ({minutes} min)",
+            EarnedAt = DateTimeOffset.UtcNow
+        });
+
         await BadgeAwarder.AwardEligibleBadgesAsync(_context, userXp, cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);

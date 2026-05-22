@@ -12,9 +12,3 @@ public record ReportDto(
     DateTimeOffset CreatedAt,
     DateTimeOffset? ResolvedAt,
     string? ResolvedBy);
-
-public record ReportSummaryDto(
-    IList<ReportDto> Items,
-    int TotalCount,
-    int Page,
-    int PageSize);

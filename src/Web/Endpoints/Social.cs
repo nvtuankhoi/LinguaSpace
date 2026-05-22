@@ -5,6 +5,7 @@ using LinguaSpace.Application.Social.Commands.MarkDmsRead;
 using LinguaSpace.Application.Social.Commands.SendDm;
 using LinguaSpace.Application.Social.DTOs;
 using LinguaSpace.Application.Social.Queries.GetConversations;
+using LinguaSpace.Application.Social.Queries.GetConversationsUnreadCount;
 using LinguaSpace.Application.Social.Queries.GetDmHistory;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -19,11 +20,22 @@ public class Social : IEndpointGroup
     public static void Map(RouteGroupBuilder group)
     {
         group.MapGet(GetConversations, "conversations").RequireAuthorization();
+        group.MapGet(GetConversationsUnreadCount, "conversations/unread-count").RequireAuthorization();
         group.MapGet(GetDmHistory, "conversations/{conversationId}/messages").RequireAuthorization();
         group.MapPost(SendDm, "dm").RequireAuthorization();
         group.MapPut(EditDm, "messages/{messageId}").RequireAuthorization();
         group.MapDelete(DeleteDm, "messages/{messageId}").RequireAuthorization();
         group.MapPost(MarkDmsRead, "conversations/{conversationId}/read").RequireAuthorization();
+    }
+
+    [EndpointSummary("Get unread conversation count")]
+    [EndpointDescription("Returns the number of conversations with unread messages and the total unread message count.")]
+    [ProducesResponseType(typeof(ConversationsUnreadCountDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public static async Task<Ok<ConversationsUnreadCountDto>> GetConversationsUnreadCount(ISender sender)
+    {
+        ConversationsUnreadCountDto result = await sender.Send(new GetConversationsUnreadCountQuery());
+        return TypedResults.Ok(result);
     }
 
     [EndpointSummary("List conversations")]

@@ -18,6 +18,7 @@ using LinguaSpace.Application.Users.Queries.GetFriendRequests;
 using LinguaSpace.Application.Users.Queries.GetFollowers;
 using LinguaSpace.Application.Users.Queries.GetFollowing;
 using LinguaSpace.Application.Users.Queries.GetFriends;
+using LinguaSpace.Application.Users.Queries.GetMyLanguages;
 using LinguaSpace.Application.Users.Queries.GetUserProfile;
 using LinguaSpace.Application.Users.Queries.SearchUsers;
 using LinguaSpace.Domain.Enums;
@@ -35,9 +36,10 @@ public class Users : IEndpointGroup
 {
     public static void Map(RouteGroupBuilder group)
     {
-        group.MapGet(GetUserProfile, "{userId}").RequireAuthorization();
-        group.MapGet(SearchUsers).RequireAuthorization();
+        group.MapGet(GetUserProfile, "{userId}");
+        group.MapGet(SearchUsers);
         group.MapGet(GetBlockedUsers, "me/blocked").RequireAuthorization();
+        group.MapGet(GetMyLanguages, "me/languages").RequireAuthorization();
 
         group.MapPut(UpdateProfile, "me/profile").RequireAuthorization();
         group.MapPut(UpdateAvatar, "me/avatar").RequireAuthorization();
@@ -166,6 +168,16 @@ public class Users : IEndpointGroup
         return TypedResults.Ok(result);
     }
 
+    [EndpointSummary("Get my languages")]
+    [EndpointDescription("Returns the authenticated user's native and learning languages.")]
+    [ProducesResponseType(typeof(IList<UserLanguageDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public static async Task<Ok<IList<UserLanguageDto>>> GetMyLanguages(ISender sender)
+    {
+        IList<UserLanguageDto> result = await sender.Send(new GetMyLanguagesQuery());
+        return TypedResults.Ok(result);
+    }
+
     [EndpointSummary("Get my friend requests")]
     [EndpointDescription("Returns incoming and outgoing pending friend requests for the authenticated user.")]
     [ProducesResponseType(typeof(IList<FriendRequestDto>), StatusCodes.Status200OK)]
@@ -180,16 +192,16 @@ public class Users : IEndpointGroup
     }
 
     [EndpointSummary("Send friend request")]
-    [EndpointDescription("Sends a friend request to the specified user. Fails if request already exists.")]
-    [ProducesResponseType(StatusCodes.Status201Created)]
+    [EndpointDescription("Sends a friend request to the specified user. Returns the requestId so the client can cancel it later. Fails if request already exists.")]
+    [ProducesResponseType(typeof(int), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public static async Task<Created> SendFriendRequest(
+    public static async Task<Created<int>> SendFriendRequest(
         [FromRoute] string userId,
         ISender sender)
     {
-        await sender.Send(new SendFriendRequestCommand(userId));
-        return TypedResults.Created();
+        int requestId = await sender.Send(new SendFriendRequestCommand(userId));
+        return TypedResults.Created($"/api/Users/friend-requests/{requestId}", requestId);
     }
 
     [EndpointSummary("Respond to friend request")]

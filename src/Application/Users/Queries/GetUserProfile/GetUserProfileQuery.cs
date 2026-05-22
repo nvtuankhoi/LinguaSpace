@@ -4,7 +4,6 @@ using LinguaSpace.Application.Users.DTOs;
 
 namespace LinguaSpace.Application.Users.Queries.GetUserProfile;
 
-[Authorize]
 public record GetUserProfileQuery(string UserId) : IRequest<UserProfileDto>;
 
 public class GetUserProfileQueryHandler : IRequestHandler<GetUserProfileQuery, UserProfileDto>

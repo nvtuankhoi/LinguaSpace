@@ -5,7 +5,6 @@ using LinguaSpace.Application.Feed.DTOs;
 
 namespace LinguaSpace.Application.Feed.Queries.GetPostComments;
 
-[Authorize]
 public record GetPostCommentsQuery(
     int PostId,
     int? ParentCommentId,

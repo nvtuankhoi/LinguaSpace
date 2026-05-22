@@ -106,14 +106,14 @@ public class FeedQueryTests : TestBase
 
         string reactorId = await TestApp.RegisterAndSetCurrentUserAsync("reactor@local");
 
-        await TestApp.SendAsync(new AddReactionCommand(postId, ReactionTargetType.Post, "Like"));
+        await TestApp.SendAsync(new AddReactionCommand(postId, "Like"));
 
-        IList<ReactionDetailDto> reactions = await TestApp.SendAsync(new GetPostReactionsQuery(postId));
+        PaginatedResult<ReactionDetailDto> reactions = await TestApp.SendAsync(new GetPostReactionsQuery(postId));
 
-        reactions.Count.ShouldBe(1);
-        reactions[0].UserId.ShouldBe(reactorId);
-        reactions[0].DisplayName.ShouldBe("reactor");
-        reactions[0].AvatarUrl.ShouldBeNull();
-        reactions[0].ReactionType.ShouldBe("Like");
+        reactions.Items.Count.ShouldBe(1);
+        reactions.Items[0].UserId.ShouldBe(reactorId);
+        reactions.Items[0].DisplayName.ShouldBe("reactor");
+        reactions.Items[0].AvatarUrl.ShouldBeNull();
+        reactions.Items[0].ReactionType.ShouldBe("Like");
     }
 }

@@ -6,11 +6,12 @@ namespace LinguaSpace.Application.Rooms.Queries.GetRoomMessages;
 
 /// <summary>
 /// Cursor-based pagination for room messages.
-/// Pass AfterCursor (a SentAt DateTimeOffset) to get messages older than that timestamp.
-/// Null AfterCursor returns the latest PageSize messages.
+/// Pass BeforeCursor (a SentAt DateTimeOffset) to get messages older than that timestamp.
+/// Null BeforeCursor returns the latest PageSize messages.
+/// Matches DM history cursor direction (both load newest-first, paginate backwards).
 /// </summary>
 [Authorize]
-public record GetRoomMessagesQuery(int RoomId, DateTimeOffset? AfterCursor, int PageSize = 50)
+public record GetRoomMessagesQuery(int RoomId, DateTimeOffset? BeforeCursor, int PageSize = 50)
     : IRequest<IList<MessageDto>>;
 
 public class GetRoomMessagesQueryHandler : IRequestHandler<GetRoomMessagesQuery, IList<MessageDto>>
@@ -38,9 +39,9 @@ public class GetRoomMessagesQueryHandler : IRequestHandler<GetRoomMessagesQuery,
             .AsNoTracking()
             .Where(m => m.RoomId == request.RoomId);
 
-        if (request.AfterCursor.HasValue)
+        if (request.BeforeCursor.HasValue)
         {
-            query = query.Where(m => m.SentAt < request.AfterCursor.Value);
+            query = query.Where(m => m.SentAt < request.BeforeCursor.Value);
         }
 
         List<Message> messages = await query

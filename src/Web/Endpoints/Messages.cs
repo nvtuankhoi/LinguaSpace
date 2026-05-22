@@ -29,19 +29,20 @@ public class Messages : IEndpointGroup
 
     [EndpointSummary("Get room message history")]
     [EndpointDescription(
-        "Returns messages for the room. Cursor-based pagination: pass afterCursor (ISO 8601 timestamp) " +
-        "to get messages older than that point. Returns in ascending order (oldest first).")]
+        "Returns messages for the room. Cursor-based pagination: pass beforeCursor (ISO 8601 timestamp) " +
+        "to get messages older than that point. Returns in ascending order (oldest first). " +
+        "Same cursor direction as DM history — both paginate backwards from newest.")]
     [ProducesResponseType(typeof(IList<MessageDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public static async Task<Ok<IList<MessageDto>>> GetRoomMessages(
         [FromRoute] int roomId,
         ISender sender,
-        [FromQuery] DateTimeOffset? afterCursor = null,
+        [FromQuery] DateTimeOffset? beforeCursor = null,
         [FromQuery] int pageSize = 50)
     {
         IList<MessageDto> messages = await sender.Send(
-            new GetRoomMessagesQuery(roomId, afterCursor, pageSize));
+            new GetRoomMessagesQuery(roomId, beforeCursor, pageSize));
 
         return TypedResults.Ok(messages);
     }

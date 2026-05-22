@@ -43,6 +43,14 @@ public class AwardXpForRoomJoinHandler : INotificationHandler<UserJoinedRoomEven
         userXp.TotalXp += xpAmount;
         BadgeAwarder.UpdateStreak(userXp);
 
+        _context.XpTransactions.Add(new XpTransaction
+        {
+            UserId = notification.UserId,
+            Amount = xpAmount,
+            Reason = room.RoomType == RoomType.TextOnly ? "Joined text room" : "Joined voice room",
+            EarnedAt = DateTimeOffset.UtcNow
+        });
+
         await BadgeAwarder.AwardEligibleBadgesAsync(_context, userXp, cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
