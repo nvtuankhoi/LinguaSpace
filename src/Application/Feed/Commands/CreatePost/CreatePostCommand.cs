@@ -1,5 +1,7 @@
+using System.Text.Json;
 using LinguaSpace.Application.Common.Interfaces;
 using LinguaSpace.Application.Common.Security;
+using LinguaSpace.Application.Feed.DTOs;
 using LinguaSpace.Domain.Events;
 
 namespace LinguaSpace.Application.Feed.Commands.CreatePost;
@@ -8,7 +10,7 @@ public record CreatePostCommand(
     string Content,
     string PostType,
     string? LanguageCode,
-    string? Metadata,
+    PostMetadataDto? Metadata,
     IList<string>? Tags,
     IList<string>? MediaUrls) : IRequest<int>;
 
@@ -28,6 +30,8 @@ public class CreatePostCommandValidator : AbstractValidator<CreatePostCommand>
 [Authorize]
 public class CreatePostCommandHandler : IRequestHandler<CreatePostCommand, int>
 {
+    private static readonly JsonSerializerOptions MetadataJsonOptions = new(JsonSerializerDefaults.Web);
+
     private readonly IApplicationDbContext _context;
     private readonly IUser _currentUser;
 
@@ -49,13 +53,17 @@ public class CreatePostCommandHandler : IRequestHandler<CreatePostCommand, int>
             ]);
         }
 
+        string? metadataJson = request.Metadata is null
+            ? null
+            : JsonSerializer.Serialize(request.Metadata, MetadataJsonOptions);
+
         Post post = new()
         {
             AuthorId = authorId,
             Content = request.Content,
             PostType = postType,
             LanguageCode = request.LanguageCode,
-            Metadata = request.Metadata,
+            Metadata = metadataJson,
         };
 
         if (request.Tags is not null)

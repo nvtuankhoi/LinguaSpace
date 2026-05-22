@@ -9,6 +9,6 @@ public record MessageDto(
     string SenderId,
     string SenderDisplayName,
     string Content,
-    string Type,
+    MessageType Type,
     DateTimeOffset SentAt,
     bool IsDeleted);

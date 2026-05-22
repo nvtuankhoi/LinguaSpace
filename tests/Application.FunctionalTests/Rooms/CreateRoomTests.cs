@@ -1,4 +1,5 @@
 using LinguaSpace.Application.Common.Exceptions;
+using LinguaSpace.Application.Common.Models;
 using LinguaSpace.Application.Rooms.Commands.CreateRoom;
 using LinguaSpace.Application.Rooms.DTOs;
 using LinguaSpace.Application.Rooms.Queries.GetRooms;
@@ -95,11 +96,11 @@ public class CreateRoomTests : TestBase
             MaxParticipants: 10,
             RoomType: RoomType.TextOnly));
 
-        IList<RoomSummaryDto> rooms = await TestApp.SendAsync(
+        PaginatedResult<RoomSummaryDto> rooms = await TestApp.SendAsync(
             new GetRoomsQuery(LanguageCode: null, RoomType: null));
 
-        rooms.Count.ShouldBe(1);
-        rooms[0].Title.ShouldBe("Visible Room");
+        rooms.Items.Count.ShouldBe(1);
+        rooms.Items[0].Title.ShouldBe("Visible Room");
     }
 
     [Test]
@@ -113,10 +114,10 @@ public class CreateRoomTests : TestBase
         await TestApp.SendAsync(new CreateRoomCommand(
             "French Room", null, "fr", 10, RoomType.TextOnly));
 
-        IList<RoomSummaryDto> englishRooms = await TestApp.SendAsync(
+        PaginatedResult<RoomSummaryDto> englishRooms = await TestApp.SendAsync(
             new GetRoomsQuery(LanguageCode: "en", RoomType: null));
 
-        englishRooms.Count.ShouldBe(1);
-        englishRooms[0].Title.ShouldBe("English Room");
+        englishRooms.Items.Count.ShouldBe(1);
+        englishRooms.Items[0].Title.ShouldBe("English Room");
     }
 }

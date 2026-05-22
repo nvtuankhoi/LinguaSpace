@@ -1,3 +1,5 @@
+using LinguaSpace.Application.Auth.Commands.ChangeEmail;
+using LinguaSpace.Application.Auth.Commands.ChangePassword;
 using LinguaSpace.Application.Auth.Commands.ForgotPassword;
 using LinguaSpace.Application.Auth.Commands.Login;
 using LinguaSpace.Application.Auth.Commands.Logout;
@@ -5,7 +7,9 @@ using LinguaSpace.Application.Auth.Commands.OAuthLogin;
 using LinguaSpace.Application.Auth.Commands.RefreshToken;
 using LinguaSpace.Application.Auth.Commands.Register;
 using LinguaSpace.Application.Auth.Commands.RegisterDeviceToken;
+using LinguaSpace.Application.Auth.Commands.ResendEmailVerification;
 using LinguaSpace.Application.Auth.Commands.ResetPassword;
+using LinguaSpace.Application.Auth.Commands.RevokeAllSessions;
 using LinguaSpace.Application.Auth.Commands.VerifyEmail;
 using LinguaSpace.Application.Auth.DTOs;
 using LinguaSpace.Application.Auth.Queries.GetCurrentUser;
@@ -35,6 +39,10 @@ public class Auth : IEndpointGroup
 
         // ─── Email verification ───────────────────────────────────────────────
         group.MapPost(VerifyEmail, "verify-email").RequireAuthorization();
+        group.MapPost(ResendVerification, "resend-verification").RequireAuthorization();
+        group.MapPost(ChangePassword, "change-password").RequireAuthorization();
+        group.MapPost(ChangeEmail, "change-email").RequireAuthorization();
+        group.MapDelete(RevokeAllSessions, "sessions").RequireAuthorization();
         group.MapPost(ForgotPassword, "forgot-password").AllowAnonymous().RequireRateLimiting("auth");
         group.MapPost(ResetPassword, "reset-password").AllowAnonymous().RequireRateLimiting("auth");
 
@@ -50,6 +58,7 @@ public class Auth : IEndpointGroup
     [EndpointSummary("Register a new user")]
     [EndpointDescription("Creates a new account and UserProfile. Returns userId and email.")]
     [ProducesResponseType(typeof(RegisterResult), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public static async Task<Created<RegisterResult>> Register(
         [FromBody] RegisterCommand command,
         ISender sender)
@@ -65,7 +74,8 @@ public class Auth : IEndpointGroup
     [EndpointSummary("Login")]
     [EndpointDescription("Returns access token in body. Sets HttpOnly refresh_token cookie.")]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public static async Task<Ok<object>> Login(
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public static async Task<Ok<AuthResponseDto>> Login(
         [FromBody] LoginCommand command,
         ISender sender,
         HttpResponse response)
@@ -74,15 +84,8 @@ public class Auth : IEndpointGroup
 
         SetRefreshTokenCookie(response, result.RefreshToken);
 
-        // Only expose access token and metadata in the body.
         // Never expose the raw refresh token in the body — it belongs in the cookie only.
-        return TypedResults.Ok<object>(new
-        {
-            result.AccessToken,
-            result.ExpiresIn,
-            result.UserId,
-            result.Email,
-        });
+        return TypedResults.Ok(new AuthResponseDto(result.AccessToken, result.ExpiresIn, result.UserId, result.Email));
     }
 
     // ─── POST /api/Auth/refresh ──────────────────────────────────────────────
@@ -92,7 +95,8 @@ public class Auth : IEndpointGroup
         "Reads refresh token from HttpOnly cookie, issues new token pair (rotation). " +
         "Returns new access token in body and sets new refresh_token cookie.")]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public static async Task<Ok<object>> Refresh(
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public static async Task<Ok<TokenResponseDto>> Refresh(
         ISender sender,
         HttpRequest request,
         HttpResponse response)
@@ -110,11 +114,7 @@ public class Auth : IEndpointGroup
 
         SetRefreshTokenCookie(response, result.NewRefreshToken);
 
-        return TypedResults.Ok<object>(new
-        {
-            result.AccessToken,
-            result.ExpiresIn,
-        });
+        return TypedResults.Ok(new TokenResponseDto(result.AccessToken, result.ExpiresIn));
     }
 
     // ─── POST /api/Auth/logout ───────────────────────────────────────────────
@@ -164,12 +164,55 @@ public class Auth : IEndpointGroup
         return TypedResults.NoContent();
     }
 
+    [EndpointSummary("Resend email verification")]
+    [EndpointDescription("Generates a fresh email verification token for the authenticated user.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public static async Task<NoContent> ResendVerification(ISender sender)
+    {
+        await sender.Send(new ResendEmailVerificationCommand());
+        return TypedResults.NoContent();
+    }
+
+    [EndpointSummary("Change password")]
+    [EndpointDescription("Changes the authenticated user's password.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public static async Task<NoContent> ChangePassword(
+        [FromBody] ChangePasswordCommand command,
+        ISender sender)
+    {
+        await sender.Send(command);
+        return TypedResults.NoContent();
+    }
+
+    [EndpointSummary("Change email")]
+    [EndpointDescription("Changes the authenticated user's email address.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public static async Task<NoContent> ChangeEmail(
+        [FromBody] ChangeEmailCommand command,
+        ISender sender)
+    {
+        await sender.Send(command);
+        return TypedResults.NoContent();
+    }
+
+    [EndpointSummary("Revoke all sessions")]
+    [EndpointDescription("Revokes the authenticated user's active refresh token sessions.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public static async Task<NoContent> RevokeAllSessions(ISender sender)
+    {
+        await sender.Send(new RevokeAllSessionsCommand());
+        return TypedResults.NoContent();
+    }
+
     // ─── POST /api/Auth/forgot-password ──────────────────────────────────────
 
     [EndpointSummary("Request a password reset email")]
     [EndpointDescription(
         "Sends a password reset link to the provided email. " +
         "Always returns 200 regardless of whether the email exists (prevents enumeration).")]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public static async Task<Ok> ForgotPassword(
         [FromBody] ForgotPasswordCommand command,
         ISender sender)
@@ -184,6 +227,7 @@ public class Auth : IEndpointGroup
     [EndpointDescription("Resets the password using the token from the reset email.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public static async Task<NoContent> ResetPassword(
         [FromBody] ResetPasswordCommand command,
         ISender sender)
@@ -214,9 +258,10 @@ public class Auth : IEndpointGroup
         "Validates a Google ID token obtained by the client (via Google Sign-In SDK). " +
         "Finds or creates the user account, then returns the same JWT + refresh cookie as a normal login. " +
         "New OAuth accounts are automatically email-confirmed.")]
-    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public static async Task<Ok<object>> OAuthGoogle(
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public static async Task<Ok<AuthResponseDto>> OAuthGoogle(
         [FromBody] OAuthLoginCommand command,
         ISender sender,
         HttpResponse response)
@@ -225,13 +270,7 @@ public class Auth : IEndpointGroup
 
         SetRefreshTokenCookie(response, result.RefreshToken);
 
-        return TypedResults.Ok<object>(new
-        {
-            result.AccessToken,
-            result.ExpiresIn,
-            result.UserId,
-            result.Email,
-        });
+        return TypedResults.Ok(new AuthResponseDto(result.AccessToken, result.ExpiresIn, result.UserId, result.Email));
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

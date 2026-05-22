@@ -1,4 +1,5 @@
 using LinguaSpace.Application.Common.Interfaces;
+using LinguaSpace.Application.Common.Models;
 using LinguaSpace.Application.Feed.DTOs;
 
 namespace LinguaSpace.Application.Feed.Queries.GetUserPosts;
@@ -9,9 +10,9 @@ namespace LinguaSpace.Application.Feed.Queries.GetUserPosts;
 public record GetUserPostsQuery(
     string UserId,
     DateTimeOffset? BeforeCursor,
-    int PageSize = 20) : IRequest<IList<PostSummaryDto>>;
+    int PageSize = 20) : IRequest<CursorPagedResult<PostSummaryDto>>;
 
-public class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery, IList<PostSummaryDto>>
+public class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery, CursorPagedResult<PostSummaryDto>>
 {
     private readonly IApplicationDbContext _context;
 
@@ -20,7 +21,7 @@ public class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery, IList
         _context = context;
     }
 
-    public async Task<IList<PostSummaryDto>> Handle(
+    public async Task<CursorPagedResult<PostSummaryDto>> Handle(
         GetUserPostsQuery request,
         CancellationToken cancellationToken)
     {
@@ -35,20 +36,29 @@ public class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery, IList
             query = query.Where(p => p.Created < request.BeforeCursor.Value);
         }
 
-        return await query
+        IList<Post> rawPosts = await query
             .OrderByDescending(p => p.Created)
-            .Take(pageSize)
+            .Take(pageSize + 1)
+            .ToListAsync(cancellationToken);
+
+        IList<PostSummaryDto> raw = rawPosts
             .Select(p => new PostSummaryDto(
                 p.Id,
                 p.AuthorId,
                 p.Content,
                 p.PostType.ToString(),
                 p.LanguageCode,
-                p.Metadata,
+                PostMetadataDto.Deserialize(p.Metadata),
                 p.LikeCount,
                 p.CommentCount,
                 p.Created,
                 p.Tags.Select(t => t.Tag).ToList()))
-            .ToListAsync(cancellationToken);
+            .ToList();
+
+        bool hasMore = raw.Count > pageSize;
+        IList<PostSummaryDto> items = hasMore ? raw.Take(pageSize).ToList() : raw;
+        DateTimeOffset? nextCursor = hasMore ? items[^1].CreatedAt : null;
+
+        return new CursorPagedResult<PostSummaryDto>(items, hasMore, nextCursor);
     }
 }

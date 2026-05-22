@@ -1,6 +1,7 @@
 using LinguaSpace.Application.Media.Commands.EndMediaSession;
 using LinguaSpace.Application.Media.Commands.GenerateMediaToken;
 using LinguaSpace.Application.Media.DTOs;
+using LinguaSpace.Application.Media.Queries.GetMediaSessionStatus;
 using LinguaSpace.Application.Media.Queries.GetRoomMediaParticipants;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -19,6 +20,7 @@ public class Media : IEndpointGroup
     {
         group.MapPost(GenerateToken, "{roomId}/media-token").RequireAuthorization();
         group.MapGet(GetParticipants, "{roomId}/media/participants").RequireAuthorization();
+        group.MapGet(GetMediaSessionStatus, "{roomId}/media/status").RequireAuthorization();
         group.MapDelete(EndSession, "{roomId}/media").RequireAuthorization();
     }
 
@@ -45,6 +47,17 @@ public class Media : IEndpointGroup
         IList<RoomMediaParticipantDto> participants = await sender.Send(
             new GetRoomMediaParticipantsQuery(roomId));
         return TypedResults.Ok(participants);
+    }
+
+    [EndpointSummary("Get media session status")]
+    [EndpointDescription("Returns whether a voice/video session is active and participant count.")]
+    [ProducesResponseType(typeof(MediaSessionStatusDto), StatusCodes.Status200OK)]
+    public static async Task<Ok<MediaSessionStatusDto>> GetMediaSessionStatus(
+        [FromRoute] int roomId,
+        ISender sender)
+    {
+        MediaSessionStatusDto status = await sender.Send(new GetMediaSessionStatusQuery(roomId));
+        return TypedResults.Ok(status);
     }
 
     [EndpointSummary("End media session")]

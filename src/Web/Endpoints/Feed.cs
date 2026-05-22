@@ -1,3 +1,4 @@
+using LinguaSpace.Application.Common.Models;
 using LinguaSpace.Application.Feed.Commands.AddReaction;
 using LinguaSpace.Application.Feed.Commands.CreateComment;
 using LinguaSpace.Application.Feed.Commands.CreatePost;
@@ -11,7 +12,9 @@ using LinguaSpace.Application.Feed.Queries.GetExplore;
 using LinguaSpace.Application.Feed.Queries.GetFeed;
 using LinguaSpace.Application.Feed.Queries.GetPost;
 using LinguaSpace.Application.Feed.Queries.GetPostComments;
+using LinguaSpace.Application.Feed.Queries.GetPostReactions;
 using LinguaSpace.Application.Feed.Queries.GetUserPosts;
+using LinguaSpace.Application.Feed.Queries.SearchPosts;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,9 +30,11 @@ public class Feed : IEndpointGroup
     {
         group.MapGet(GetFeed).RequireAuthorization();
         group.MapGet(GetExplore, "explore");
+        group.MapGet(SearchPosts, "search");
         group.MapGet(GetUserPosts, "users/{userId}");
         group.MapGet(GetPost, "posts/{postId}").RequireAuthorization();
         group.MapGet(GetPostComments, "posts/{postId}/comments").RequireAuthorization();
+        group.MapGet(GetPostReactions, "posts/{postId}/reactions").RequireAuthorization();
 
         group.MapPost(CreatePost, "posts").RequireAuthorization();
         group.MapPut(UpdatePost, "posts/{postId}").RequireAuthorization();
@@ -47,31 +52,46 @@ public class Feed : IEndpointGroup
 
     [EndpointSummary("Explore public posts")]
     [EndpointDescription("Returns public posts with optional language/type filter. No auth required.")]
-    [ProducesResponseType(typeof(IList<PostSummaryDto>), StatusCodes.Status200OK)]
-    public static async Task<Ok<IList<PostSummaryDto>>> GetExplore(
+    [ProducesResponseType(typeof(CursorPagedResult<PostSummaryDto>), StatusCodes.Status200OK)]
+    public static async Task<Ok<CursorPagedResult<PostSummaryDto>>> GetExplore(
         ISender sender,
         [FromQuery] string? languageCode = null,
         [FromQuery] string? postType = null,
         [FromQuery] DateTimeOffset? beforeCursor = null,
         [FromQuery] int pageSize = 20)
     {
-        IList<PostSummaryDto> posts = await sender.Send(
+        CursorPagedResult<PostSummaryDto> posts = await sender.Send(
             new GetExploreQuery(languageCode, postType, beforeCursor, pageSize));
         return TypedResults.Ok(posts);
+    }
+
+    // ─── GET /api/Feed/search ──────────────────────────────────────────────────
+
+    [EndpointSummary("Search posts")]
+    [EndpointDescription("Search posts by content. No auth required.")]
+    [ProducesResponseType(typeof(PaginatedResult<PostSummaryDto>), StatusCodes.Status200OK)]
+    public static async Task<Ok<PaginatedResult<PostSummaryDto>>> SearchPosts(
+        ISender sender,
+        [FromQuery] string? q = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        PaginatedResult<PostSummaryDto> results = await sender.Send(new SearchPostsQuery(q ?? string.Empty, page, pageSize));
+        return TypedResults.Ok(results);
     }
 
     // ─── GET /api/Feed/users/{userId} ─────────────────────────────────────────
 
     [EndpointSummary("Get posts by user")]
     [EndpointDescription("Returns posts by a specific user, cursor-paginated.")]
-    [ProducesResponseType(typeof(IList<PostSummaryDto>), StatusCodes.Status200OK)]
-    public static async Task<Ok<IList<PostSummaryDto>>> GetUserPosts(
+    [ProducesResponseType(typeof(CursorPagedResult<PostSummaryDto>), StatusCodes.Status200OK)]
+    public static async Task<Ok<CursorPagedResult<PostSummaryDto>>> GetUserPosts(
         [FromRoute] string userId,
         ISender sender,
         [FromQuery] DateTimeOffset? beforeCursor = null,
         [FromQuery] int pageSize = 20)
     {
-        IList<PostSummaryDto> posts = await sender.Send(
+        CursorPagedResult<PostSummaryDto> posts = await sender.Send(
             new GetUserPostsQuery(userId, beforeCursor, pageSize));
         return TypedResults.Ok(posts);
     }
@@ -80,13 +100,13 @@ public class Feed : IEndpointGroup
 
     [EndpointSummary("Get social feed")]
     [EndpointDescription("Returns paginated posts from followed users. Use beforeCursor for pagination.")]
-    [ProducesResponseType(typeof(IList<PostSummaryDto>), StatusCodes.Status200OK)]
-    public static async Task<Ok<IList<PostSummaryDto>>> GetFeed(
+    [ProducesResponseType(typeof(CursorPagedResult<PostSummaryDto>), StatusCodes.Status200OK)]
+    public static async Task<Ok<CursorPagedResult<PostSummaryDto>>> GetFeed(
         ISender sender,
         [FromQuery] DateTimeOffset? beforeCursor = null,
         [FromQuery] int pageSize = 20)
     {
-        IList<PostSummaryDto> feed = await sender.Send(new GetFeedQuery(beforeCursor, pageSize));
+        CursorPagedResult<PostSummaryDto> feed = await sender.Send(new GetFeedQuery(beforeCursor, pageSize));
         return TypedResults.Ok(feed);
     }
 
@@ -106,17 +126,30 @@ public class Feed : IEndpointGroup
     // ─── GET /api/Feed/posts/{postId}/comments ────────────────────────────────
 
     [EndpointSummary("Get post comments")]
-    [ProducesResponseType(typeof(IList<CommentDto>), StatusCodes.Status200OK)]
-    public static async Task<Ok<IList<CommentDto>>> GetPostComments(
+    [ProducesResponseType(typeof(PaginatedResult<CommentDto>), StatusCodes.Status200OK)]
+    public static async Task<Ok<PaginatedResult<CommentDto>>> GetPostComments(
         [FromRoute] int postId,
         ISender sender,
         [FromQuery] int? parentCommentId = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        IList<CommentDto> comments = await sender.Send(
+        PaginatedResult<CommentDto> comments = await sender.Send(
             new GetPostCommentsQuery(postId, parentCommentId, page, pageSize));
         return TypedResults.Ok(comments);
+    }
+
+    // ─── GET /api/Feed/posts/{postId}/reactions ───────────────────────────────
+
+    [EndpointSummary("Get post reactions")]
+    [EndpointDescription("Returns all users who reacted to a post.")]
+    [ProducesResponseType(typeof(IList<ReactionDetailDto>), StatusCodes.Status200OK)]
+    public static async Task<Ok<IList<ReactionDetailDto>>> GetPostReactions(
+        [FromRoute] int postId,
+        ISender sender)
+    {
+        IList<ReactionDetailDto> reactions = await sender.Send(new GetPostReactionsQuery(postId));
+        return TypedResults.Ok(reactions);
     }
 
     // ─── POST /api/Feed/posts ─────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 using LinguaSpace.Application.Common.Exceptions;
 using LinguaSpace.Application.Common.Interfaces;
 using LinguaSpace.Application.Common.Security;
+using LinguaSpace.Application.Moderation.DTOs;
 using LinguaSpace.Domain.Constants;
 
 namespace LinguaSpace.Application.Moderation.Commands.ResolveReport;
@@ -9,18 +10,14 @@ namespace LinguaSpace.Application.Moderation.Commands.ResolveReport;
 /// Resolves or dismisses a pending moderation report. Admin only.
 /// </summary>
 /// <param name="ReportId">The report to resolve.</param>
-/// <param name="Action">"Resolve" or "Dismiss".</param>
-public record ResolveReportCommand(int ReportId, string Action) : IRequest;
+/// <param name="Action">The resolution action to apply.</param>
+public record ResolveReportCommand(int ReportId, ReportAction Action) : IRequest;
 
 public class ResolveReportCommandValidator : AbstractValidator<ResolveReportCommand>
 {
     public ResolveReportCommandValidator()
     {
         RuleFor(x => x.ReportId).GreaterThan(0);
-        RuleFor(x => x.Action)
-            .NotEmpty()
-            .Must(a => a is "Resolve" or "Dismiss")
-            .WithMessage("Action must be 'Resolve' or 'Dismiss'.");
     }
 }
 
@@ -45,7 +42,7 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand>
             throw new NotFoundException(nameof(Report), request.ReportId);
         }
 
-        report.Status = request.Action == "Dismiss" ? ReportStatus.Dismissed : ReportStatus.Resolved;
+        report.Status = request.Action == ReportAction.Dismiss ? ReportStatus.Dismissed : ReportStatus.Resolved;
         report.ResolvedAt = DateTimeOffset.UtcNow;
         report.ResolvedBy = _currentUser.Id;
 

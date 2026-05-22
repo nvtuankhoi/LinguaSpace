@@ -1,4 +1,5 @@
 using LinguaSpace.Application.Common.Interfaces;
+using LinguaSpace.Application.Common.Models;
 using LinguaSpace.Application.Common.Security;
 using LinguaSpace.Application.Feed.DTOs;
 using Microsoft.Extensions.Configuration;
@@ -13,9 +14,9 @@ namespace LinguaSpace.Application.Feed.Queries.GetFeed;
 [Authorize]
 public record GetFeedQuery(
     DateTimeOffset? BeforeCursor,
-    int PageSize = 20) : IRequest<IList<PostSummaryDto>>;
+    int PageSize = 20) : IRequest<CursorPagedResult<PostSummaryDto>>;
 
-public class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, IList<PostSummaryDto>>
+public class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, CursorPagedResult<PostSummaryDto>>
 {
     private readonly IApplicationDbContext _context;
     private readonly IUser _currentUser;
@@ -36,23 +37,22 @@ public class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, IList<PostSumma
         _fanOutThreshold = configuration.GetValue("FeedSettings:FanOutThreshold", 500);
     }
 
-    public async Task<IList<PostSummaryDto>> Handle(
+    public async Task<CursorPagedResult<PostSummaryDto>> Handle(
         GetFeedQuery request,
         CancellationToken cancellationToken)
     {
         string userId = _currentUser.Id ?? throw new UnauthorizedAccessException();
 
-        // Only use cache for first page (no cursor) to avoid stale paginated data
         if (request.BeforeCursor is null)
         {
             string cacheKey = $"feed:{userId}";
-            IList<PostSummaryDto>? cached = await _cache.GetAsync<IList<PostSummaryDto>>(cacheKey, cancellationToken);
+            CursorPagedResult<PostSummaryDto>? cached = await _cache.GetAsync<CursorPagedResult<PostSummaryDto>>(cacheKey, cancellationToken);
             if (cached is not null)
             {
                 return cached;
             }
 
-            IList<PostSummaryDto> results = await FetchFeedAsync(userId, null, request.PageSize, cancellationToken);
+            CursorPagedResult<PostSummaryDto> results = await FetchFeedAsync(userId, null, request.PageSize, cancellationToken);
             await _cache.SetAsync(cacheKey, results, FeedCacheTtl, cancellationToken);
             return results;
         }
@@ -60,19 +60,17 @@ public class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, IList<PostSumma
         return await FetchFeedAsync(userId, request.BeforeCursor, request.PageSize, cancellationToken);
     }
 
-    private async Task<IList<PostSummaryDto>> FetchFeedAsync(
+    private async Task<CursorPagedResult<PostSummaryDto>> FetchFeedAsync(
         string userId,
         DateTimeOffset? beforeCursor,
         int pageSize,
         CancellationToken cancellationToken)
     {
-        // Get IDs of users the current user follows
         IList<string> followingIds = await _context.Follows
             .Where(f => f.FollowerId == userId)
             .Select(f => f.FolloweeId)
             .ToListAsync(cancellationToken);
 
-        // Include own posts in feed
         followingIds.Add(userId);
 
         IQueryable<Post> query = _context.Posts
@@ -84,20 +82,29 @@ public class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, IList<PostSumma
             query = query.Where(p => p.Created < beforeCursor.Value);
         }
 
-        return await query
+        IList<Post> rawPosts = await query
             .OrderByDescending(p => p.Created)
-            .Take(pageSize)
+            .Take(pageSize + 1)
+            .ToListAsync(cancellationToken);
+
+        IList<PostSummaryDto> raw = rawPosts
             .Select(p => new PostSummaryDto(
                 p.Id,
                 p.AuthorId,
                 p.Content,
                 p.PostType.ToString(),
                 p.LanguageCode,
-                p.Metadata,
+                PostMetadataDto.Deserialize(p.Metadata),
                 p.LikeCount,
                 p.CommentCount,
                 p.Created,
                 p.Tags.Select(t => t.Tag).ToList()))
-            .ToListAsync(cancellationToken);
+            .ToList();
+
+        bool hasMore = raw.Count > pageSize;
+        IList<PostSummaryDto> items = hasMore ? raw.Take(pageSize).ToList() : raw;
+        DateTimeOffset? nextCursor = hasMore ? items[^1].CreatedAt : null;
+
+        return new CursorPagedResult<PostSummaryDto>(items, hasMore, nextCursor);
     }
 }

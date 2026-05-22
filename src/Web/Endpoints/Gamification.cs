@@ -2,6 +2,8 @@ using LinguaSpace.Application.Gamification.DTOs;
 using LinguaSpace.Application.Gamification.Queries.GetLeaderboard;
 using LinguaSpace.Application.Gamification.Queries.GetMyBadges;
 using LinguaSpace.Application.Gamification.Queries.GetMyXP;
+using LinguaSpace.Application.Gamification.Queries.GetUserBadges;
+using LinguaSpace.Application.Gamification.Queries.GetUserXP;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,12 +20,14 @@ public class Gamification : IEndpointGroup
         group.MapGet(GetLeaderboard, "leaderboard");
         group.MapGet(GetMyXp, "me/xp").RequireAuthorization();
         group.MapGet(GetMyBadges, "me/badges").RequireAuthorization();
+        group.MapGet(GetUserXp, "users/{userId}/xp").RequireAuthorization();
+        group.MapGet(GetUserBadges, "users/{userId}/badges").RequireAuthorization();
     }
 
     // ─── GET /api/Gamification/leaderboard ───────────────────────────────────
 
     [EndpointSummary("Get XP leaderboard")]
-    [EndpointDescription("Returns top users by total XP. period=all|weekly, limit=1–50.")]
+    [EndpointDescription("Returns top users by total XP. period=all|weekly|monthly, limit=1–50.")]
     [ProducesResponseType(typeof(IList<LeaderboardEntryDto>), StatusCodes.Status200OK)]
     public static async Task<Ok<IList<LeaderboardEntryDto>>> GetLeaderboard(
         ISender sender,
@@ -53,6 +57,28 @@ public class Gamification : IEndpointGroup
     public static async Task<Ok<IList<BadgeDto>>> GetMyBadges(ISender sender)
     {
         IList<BadgeDto> badges = await sender.Send(new GetMyBadgesQuery());
+        return TypedResults.Ok(badges);
+    }
+
+    [EndpointSummary("Get user XP summary")]
+    [EndpointDescription("Returns total XP, streak, and rank for a specific user.")]
+    [ProducesResponseType(typeof(XpSummaryDto), StatusCodes.Status200OK)]
+    public static async Task<Ok<XpSummaryDto>> GetUserXp(
+        [FromRoute] string userId,
+        ISender sender)
+    {
+        XpSummaryDto dto = await sender.Send(new GetUserXpQuery(userId));
+        return TypedResults.Ok(dto);
+    }
+
+    [EndpointSummary("Get user badges")]
+    [EndpointDescription("Returns all badges earned by the specified user, most recent first.")]
+    [ProducesResponseType(typeof(IList<BadgeDto>), StatusCodes.Status200OK)]
+    public static async Task<Ok<IList<BadgeDto>>> GetUserBadges(
+        [FromRoute] string userId,
+        ISender sender)
+    {
+        IList<BadgeDto> badges = await sender.Send(new GetUserBadgesQuery(userId));
         return TypedResults.Ok(badges);
     }
 }

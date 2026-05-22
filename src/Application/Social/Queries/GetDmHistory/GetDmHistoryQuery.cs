@@ -1,4 +1,5 @@
 using LinguaSpace.Application.Common.Interfaces;
+using LinguaSpace.Application.Common.Models;
 using LinguaSpace.Application.Common.Security;
 using LinguaSpace.Application.Social.DTOs;
 
@@ -8,9 +9,9 @@ namespace LinguaSpace.Application.Social.Queries.GetDmHistory;
 public record GetDmHistoryQuery(
     int ConversationId,
     DateTimeOffset? BeforeCursor,
-    int PageSize = 30) : IRequest<IList<DirectMessageDto>>;
+    int PageSize = 30) : IRequest<CursorPagedResult<DirectMessageDto>>;
 
-public class GetDmHistoryQueryHandler : IRequestHandler<GetDmHistoryQuery, IList<DirectMessageDto>>
+public class GetDmHistoryQueryHandler : IRequestHandler<GetDmHistoryQuery, CursorPagedResult<DirectMessageDto>>
 {
     private readonly IApplicationDbContext _context;
     private readonly IUser _currentUser;
@@ -21,13 +22,12 @@ public class GetDmHistoryQueryHandler : IRequestHandler<GetDmHistoryQuery, IList
         _currentUser = currentUser;
     }
 
-    public async Task<IList<DirectMessageDto>> Handle(
+    public async Task<CursorPagedResult<DirectMessageDto>> Handle(
         GetDmHistoryQuery request,
         CancellationToken cancellationToken)
     {
         string userId = _currentUser.Id ?? throw new UnauthorizedAccessException();
 
-        // Verify membership
         bool isMember = await _context.Conversations.AnyAsync(
             c => c.Id == request.ConversationId
               && (c.User1Id == userId || c.User2Id == userId),
@@ -39,23 +39,31 @@ public class GetDmHistoryQueryHandler : IRequestHandler<GetDmHistoryQuery, IList
         }
 
         IQueryable<DirectMessage> query = _context.DirectMessages
-            .Where(m => m.ConversationId == request.ConversationId);
+            .Where(m => m.ConversationId == request.ConversationId && !m.IsDeleted);
 
         if (request.BeforeCursor.HasValue)
         {
             query = query.Where(m => m.SentAt < request.BeforeCursor.Value);
         }
 
-        return await query
+        IList<DirectMessageDto> raw = await query
             .OrderByDescending(m => m.SentAt)
-            .Take(request.PageSize)
+            .Take(request.PageSize + 1)
             .Select(m => new DirectMessageDto(
                 m.Id,
                 m.ConversationId,
                 m.SenderId,
                 m.Content,
                 m.SentAt,
-                m.IsRead))
+                m.IsRead,
+                false,
+                m.EditedAt))
             .ToListAsync(cancellationToken);
+
+        bool hasMore = raw.Count > request.PageSize;
+        IList<DirectMessageDto> items = hasMore ? raw.Take(request.PageSize).ToList() : raw;
+        DateTimeOffset? nextCursor = hasMore ? items[^1].SentAt : null;
+
+        return new CursorPagedResult<DirectMessageDto>(items, hasMore, nextCursor);
     }
 }

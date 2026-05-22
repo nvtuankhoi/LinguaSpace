@@ -4,6 +4,7 @@ using LinguaSpace.Infrastructure.Data;
 using LinguaSpace.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -26,9 +27,14 @@ public static class DependencyInjection
 
         builder.Services.AddEndpointsApiExplorer();
 
+        // Serialize enums as strings in all JSON responses (affects Minimal API + OpenAPI)
+        builder.Services.ConfigureHttpJsonOptions(options =>
+            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
         builder.Services.AddOpenApi(options =>
         {
             options.AddOperationTransformer<ApiExceptionOperationTransformer>();
+            options.AddOperationTransformer<BearerSecurityOperationTransformer>();
             // IdentityApiOperationTransformer is removed — we no longer use MapIdentityApi
             options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
         });

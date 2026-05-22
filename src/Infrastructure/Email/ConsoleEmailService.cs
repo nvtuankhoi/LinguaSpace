@@ -26,7 +26,7 @@ public class ConsoleEmailService : IEmailService
             toEmail,
             verificationLink);
 
-        return Task.CompletedTask;
+        return Task.CompletedTask;  
     }
 
     public Task SendPasswordResetEmailAsync(

@@ -53,8 +53,8 @@ public class GetRoomQueryHandler : IRequestHandler<GetRoomQuery, RoomDto>
             room.LanguageCode,
             room.MaxParticipants,
             participants.Count,
-            room.Status.ToString(),
-            room.RoomType.ToString(),
+            room.Status,
+            room.RoomType,
             room.HostId,
             room.Created,
             participants);

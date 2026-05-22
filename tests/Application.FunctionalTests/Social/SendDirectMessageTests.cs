@@ -1,4 +1,7 @@
 using LinguaSpace.Application.Common.Exceptions;
+using LinguaSpace.Application.Common.Models;
+using LinguaSpace.Application.Social.Commands.DeleteDm;
+using LinguaSpace.Application.Social.Commands.EditDm;
 using LinguaSpace.Application.Social.Commands.MarkDmsRead;
 using LinguaSpace.Application.Social.Commands.SendDm;
 using LinguaSpace.Application.Social.DTOs;
@@ -73,10 +76,12 @@ public class SendDirectMessageTests : TestBase
         await TestApp.RegisterAndSetCurrentUserAsync("alice3@local");
         await TestApp.SendAsync(new SendDmCommand(bobId, "Convo list test"));
 
-        IList<ConversationDto> convos = await TestApp.SendAsync(new GetConversationsQuery());
+        PaginatedResult<ConversationDto> convos = await TestApp.SendAsync(new GetConversationsQuery());
 
-        convos.Count.ShouldBe(1);
-        convos[0].LastMessage.ShouldBe("Convo list test");
+        convos.TotalCount.ShouldBe(1);
+        convos.Items.Count.ShouldBe(1);
+        convos.Items[0].LastMessage.ShouldBe("Convo list test");
+        convos.Items[0].OtherUserId.ShouldBe(bobId);
     }
 
     [Test]
@@ -89,10 +94,56 @@ public class SendDirectMessageTests : TestBase
         DirectMessageDto first = await TestApp.SendAsync(new SendDmCommand(bobId, "First"));
         await TestApp.SendAsync(new SendDmCommand(bobId, "Second"));
 
-        IList<DirectMessageDto> history = await TestApp.SendAsync(
+        CursorPagedResult<DirectMessageDto> history = await TestApp.SendAsync(
             new GetDmHistoryQuery(first.ConversationId, null, 20));
 
-        history.Count.ShouldBe(2);
+        history.Items.Count.ShouldBe(2);
+    }
+
+    [Test]
+    public async Task EditDmShouldUpdateContentAndEditedAt()
+    {
+        await TestApp.RegisterAndSetCurrentUserAsync("alice-edit@local");
+        string bobId = await TestApp.RunAsUserAsync("bob-edit@local", "Testing1234!", []);
+
+        await TestApp.RegisterAndSetCurrentUserAsync("alice-edit@local");
+        DirectMessageDto dm = await TestApp.SendAsync(new SendDmCommand(bobId, "Original"));
+
+        await TestApp.SendAsync(new EditDmCommand(dm.Id, "Updated"));
+
+        DirectMessage? updated = await TestApp.FindAsync<DirectMessage>(dm.Id);
+        updated.ShouldNotBeNull();
+        updated.Content.ShouldBe("Updated");
+        updated.EditedAt.ShouldNotBeNull();
+
+        CursorPagedResult<DirectMessageDto> history = await TestApp.SendAsync(
+            new GetDmHistoryQuery(dm.ConversationId, null, 20));
+
+        history.Items.Count.ShouldBe(1);
+        history.Items[0].Content.ShouldBe("Updated");
+        history.Items[0].EditedAt.ShouldNotBeNull();
+    }
+
+    [Test]
+    public async Task DeleteDmShouldHideMessageFromHistory()
+    {
+        await TestApp.RegisterAndSetCurrentUserAsync("alice-delete@local");
+        string bobId = await TestApp.RunAsUserAsync("bob-delete@local", "Testing1234!", []);
+
+        await TestApp.RegisterAndSetCurrentUserAsync("alice-delete@local");
+        DirectMessageDto dm = await TestApp.SendAsync(new SendDmCommand(bobId, "Delete me"));
+
+        await TestApp.SendAsync(new DeleteDmCommand(dm.Id));
+
+        DirectMessage? deleted = await TestApp.FindAsync<DirectMessage>(dm.Id);
+        deleted.ShouldNotBeNull();
+        deleted.IsDeleted.ShouldBeTrue();
+        deleted.Content.ShouldBe("[deleted]");
+
+        CursorPagedResult<DirectMessageDto> history = await TestApp.SendAsync(
+            new GetDmHistoryQuery(dm.ConversationId, null, 20));
+
+        history.Items.Count.ShouldBe(0);
     }
 
     [Test]

@@ -34,9 +34,10 @@ public class GetCurrentUserQueryHandler : IRequestHandler<GetCurrentUserQuery, C
             ?? throw new NotFoundException(nameof(UserProfile), userId);
 
         string email = await _identityService.GetEmailAsync(userId) ?? string.Empty;
+        bool isEmailConfirmed = await _identityService.IsEmailConfirmedAsync(userId);
 
         IList<string> roles = _currentUser.Roles?.ToList() ?? [];
 
-        return new CurrentUserDto(userId, email, profile.DisplayName, roles);
+        return new CurrentUserDto(userId, email, profile.DisplayName, roles, profile.AvatarUrl, isEmailConfirmed);
     }
 }

@@ -70,6 +70,20 @@ public class IdentityService : IIdentityService
         return await _userManager.CheckPasswordAsync(user, password);
     }
 
+    public async Task<Result> ChangePasswordAsync(string userId, string currentPassword, string newPassword)
+    {
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return Result.Failure(["User not found."]);
+        }
+
+        IdentityResult result = await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+
+        return result.ToApplicationResult();
+    }
+
     public async Task UpdateRefreshTokenAsync(string userId, string? tokenHash, DateTimeOffset? expiresAt)
     {
         ApplicationUser? user = await _userManager.FindByIdAsync(userId);
@@ -223,6 +237,27 @@ public class IdentityService : IIdentityService
         ApplicationUser? user = await _userManager.FindByIdAsync(userId);
 
         return user?.EmailConfirmed ?? false;
+    }
+
+    public async Task<Result> ChangeEmailAsync(string userId, string newEmail)
+    {
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return Result.Failure(["User not found."]);
+        }
+
+        IdentityResult setEmailResult = await _userManager.SetEmailAsync(user, newEmail);
+
+        if (!setEmailResult.Succeeded)
+        {
+            return setEmailResult.ToApplicationResult();
+        }
+
+        IdentityResult setUserNameResult = await _userManager.SetUserNameAsync(user, newEmail);
+
+        return setUserNameResult.ToApplicationResult();
     }
 
     // ─── Password reset ───────────────────────────────────────────────────────

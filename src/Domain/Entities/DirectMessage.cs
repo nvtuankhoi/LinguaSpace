@@ -14,4 +14,8 @@ public class DirectMessage : BaseEntity
     public DateTimeOffset SentAt { get; set; }
 
     public bool IsRead { get; set; }
+
+    public bool IsDeleted { get; set; } = false;
+
+    public DateTimeOffset? EditedAt { get; set; }
 }

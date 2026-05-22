@@ -1,11 +1,15 @@
+using LinguaSpace.Application.Common.Models;
 using LinguaSpace.Application.Rooms.Commands.CloseRoom;
 using LinguaSpace.Application.Rooms.Commands.CreateRoom;
+using LinguaSpace.Application.Rooms.Commands.InviteToRoom;
 using LinguaSpace.Application.Rooms.Commands.JoinRoom;
 using LinguaSpace.Application.Rooms.Commands.KickParticipant;
 using LinguaSpace.Application.Rooms.Commands.LeaveRoom;
 using LinguaSpace.Application.Rooms.Commands.MuteParticipant;
+using LinguaSpace.Application.Rooms.Commands.TransferHost;
 using LinguaSpace.Application.Rooms.Commands.UpdateRoom;
 using LinguaSpace.Application.Rooms.DTOs;
+using LinguaSpace.Application.Rooms.Queries.GetMyRooms;
 using LinguaSpace.Application.Rooms.Queries.GetRoom;
 using LinguaSpace.Application.Rooms.Queries.GetRooms;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -22,6 +26,7 @@ public class Rooms : IEndpointGroup
     {
         // List and get require auth — all app features require authentication
         group.MapGet(GetRooms).RequireAuthorization();
+        group.MapGet(GetMyRooms, "mine").RequireAuthorization();
         group.MapGet(GetRoom, "{roomId}").RequireAuthorization();
 
         group.MapPost(CreateRoom).RequireAuthorization();
@@ -29,6 +34,8 @@ public class Rooms : IEndpointGroup
         group.MapPost(JoinRoom, "{roomId}/join").RequireAuthorization();
         group.MapPost(LeaveRoom, "{roomId}/leave").RequireAuthorization();
         group.MapDelete(CloseRoom, "{roomId}").RequireAuthorization();
+        group.MapPost(TransferHost, "{roomId}/transfer-host/{targetUserId}").RequireAuthorization();
+        group.MapPost(InviteToRoom, "{roomId}/invite/{targetUserId}").RequireAuthorization();
 
         // ─── Moderation ───────────────────────────────────────────────────────
         group.MapPost(MuteParticipant, "{roomId}/mute/{targetUserId}").RequireAuthorization();
@@ -39,18 +46,32 @@ public class Rooms : IEndpointGroup
 
     [EndpointSummary("List active rooms")]
     [EndpointDescription("Returns paginated list of active rooms. Filter by language and room type.")]
-    [ProducesResponseType(typeof(IList<RoomSummaryDto>), StatusCodes.Status200OK)]
-    public static async Task<Ok<IList<RoomSummaryDto>>> GetRooms(
+    [ProducesResponseType(typeof(PaginatedResult<RoomSummaryDto>), StatusCodes.Status200OK)]
+    public static async Task<Ok<PaginatedResult<RoomSummaryDto>>> GetRooms(
         ISender sender,
         [FromQuery] string? languageCode = null,
         [FromQuery] string? roomType = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        IList<RoomSummaryDto> results = await sender.Send(
+        PaginatedResult<RoomSummaryDto> results = await sender.Send(
             new GetRoomsQuery(languageCode, roomType, page, pageSize));
 
         return TypedResults.Ok(results);
+    }
+
+    // ─── GET /api/Rooms/mine ─────────────────────────────────────────────────
+
+    [EndpointSummary("Get my rooms")]
+    [EndpointDescription("Returns paginated list of rooms the current user participates in.")]
+    [ProducesResponseType(typeof(PaginatedResult<RoomSummaryDto>), StatusCodes.Status200OK)]
+    public static async Task<Ok<PaginatedResult<RoomSummaryDto>>> GetMyRooms(
+        ISender sender,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        PaginatedResult<RoomSummaryDto> rooms = await sender.Send(new GetMyRoomsQuery(page, pageSize));
+        return TypedResults.Ok(rooms);
     }
 
     // ─── GET /api/Rooms/{roomId} ─────────────────────────────────────────────
@@ -149,6 +170,34 @@ public class Rooms : IEndpointGroup
         ISender sender)
     {
         await sender.Send(new CloseRoomCommand(roomId));
+        return TypedResults.NoContent();
+    }
+
+    [EndpointSummary("Transfer host role")]
+    [EndpointDescription("Transfers the host role to another participant. Host only.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public static async Task<NoContent> TransferHost(
+        [FromRoute] int roomId,
+        [FromRoute] string targetUserId,
+        ISender sender)
+    {
+        await sender.Send(new TransferHostCommand(roomId, targetUserId));
+        return TypedResults.NoContent();
+    }
+
+    [EndpointSummary("Invite user to room")]
+    [EndpointDescription("Sends a room invitation notification to the target user.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public static async Task<NoContent> InviteToRoom(
+        [FromRoute] int roomId,
+        [FromRoute] string targetUserId,
+        ISender sender)
+    {
+        await sender.Send(new InviteToRoomCommand(roomId, targetUserId));
         return TypedResults.NoContent();
     }
 

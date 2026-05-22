@@ -6,7 +6,7 @@ public record PostSummaryDto(
     string Content,
     string PostType,
     string? LanguageCode,
-    string? Metadata,
+    PostMetadataDto? Metadata,
     int LikeCount,
     int CommentCount,
     DateTimeOffset CreatedAt,
@@ -18,7 +18,7 @@ public record PostDto(
     string Content,
     string PostType,
     string? LanguageCode,
-    string? Metadata,
+    PostMetadataDto? Metadata,
     int LikeCount,
     int CommentCount,
     DateTimeOffset CreatedAt,
@@ -39,6 +39,13 @@ public record MediaItemDto(
     int Id,
     string Url,
     int SortOrder);
+
+public record ReactionDetailDto(
+    string UserId,
+    string DisplayName,
+    string? AvatarUrl,
+    string ReactionType,
+    DateTimeOffset CreatedAt);
 
 public record ReactionSummaryDto(
     int TargetId,

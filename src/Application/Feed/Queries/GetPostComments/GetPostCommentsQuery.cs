@@ -1,4 +1,5 @@
 using LinguaSpace.Application.Common.Interfaces;
+using LinguaSpace.Application.Common.Models;
 using LinguaSpace.Application.Common.Security;
 using LinguaSpace.Application.Feed.DTOs;
 
@@ -9,9 +10,9 @@ public record GetPostCommentsQuery(
     int PostId,
     int? ParentCommentId,
     int Page = 1,
-    int PageSize = 20) : IRequest<IList<CommentDto>>;
+    int PageSize = 20) : IRequest<PaginatedResult<CommentDto>>;
 
-public class GetPostCommentsQueryHandler : IRequestHandler<GetPostCommentsQuery, IList<CommentDto>>
+public class GetPostCommentsQueryHandler : IRequestHandler<GetPostCommentsQuery, PaginatedResult<CommentDto>>
 {
     private readonly IApplicationDbContext _context;
 
@@ -20,16 +21,22 @@ public class GetPostCommentsQueryHandler : IRequestHandler<GetPostCommentsQuery,
         _context = context;
     }
 
-    public async Task<IList<CommentDto>> Handle(
+    public async Task<PaginatedResult<CommentDto>> Handle(
         GetPostCommentsQuery request,
         CancellationToken cancellationToken)
     {
-        return await _context.Comments
+        int skip = (request.Page - 1) * request.PageSize;
+
+        IQueryable<Comment> query = _context.Comments
             .Where(c => c.PostId == request.PostId
                      && !c.IsDeleted
-                     && c.ParentCommentId == request.ParentCommentId)
+                     && c.ParentCommentId == request.ParentCommentId);
+
+        int totalCount = await query.CountAsync(cancellationToken);
+
+        IList<CommentDto> items = await query
             .OrderBy(c => c.Created)
-            .Skip((request.Page - 1) * request.PageSize)
+            .Skip(skip)
             .Take(request.PageSize)
             .Select(c => new CommentDto(
                 c.Id,
@@ -40,5 +47,7 @@ public class GetPostCommentsQueryHandler : IRequestHandler<GetPostCommentsQuery,
                 c.LikeCount,
                 c.Created))
             .ToListAsync(cancellationToken);
+
+        return new PaginatedResult<CommentDto>(items, totalCount, request.Page, request.PageSize, skip + items.Count < totalCount);
     }
 }

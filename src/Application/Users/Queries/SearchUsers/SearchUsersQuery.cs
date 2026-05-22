@@ -1,4 +1,5 @@
 using LinguaSpace.Application.Common.Interfaces;
+using LinguaSpace.Application.Common.Models;
 using LinguaSpace.Application.Common.Security;
 using LinguaSpace.Application.Users.DTOs;
 
@@ -6,9 +7,9 @@ namespace LinguaSpace.Application.Users.Queries.SearchUsers;
 
 [Authorize]
 public record SearchUsersQuery(string? Term, string? LanguageCode, int Page = 1, int PageSize = 20)
-    : IRequest<IList<UserSummaryDto>>;
+    : IRequest<PaginatedResult<UserSummaryDto>>;
 
-public class SearchUsersQueryHandler : IRequestHandler<SearchUsersQuery, IList<UserSummaryDto>>
+public class SearchUsersQueryHandler : IRequestHandler<SearchUsersQuery, PaginatedResult<UserSummaryDto>>
 {
     private const int MaxPageSize = 50;
     private readonly IApplicationDbContext _context;
@@ -18,7 +19,7 @@ public class SearchUsersQueryHandler : IRequestHandler<SearchUsersQuery, IList<U
         _context = context;
     }
 
-    public async Task<IList<UserSummaryDto>> Handle(SearchUsersQuery request, CancellationToken cancellationToken)
+    public async Task<PaginatedResult<UserSummaryDto>> Handle(SearchUsersQuery request, CancellationToken cancellationToken)
     {
         int pageSize = Math.Min(request.PageSize, MaxPageSize);
         int skip = (request.Page - 1) * pageSize;
@@ -37,11 +38,15 @@ public class SearchUsersQueryHandler : IRequestHandler<SearchUsersQuery, IList<U
                 p.Languages.Any(l => l.LanguageCode == request.LanguageCode));
         }
 
-        return await query
+        int totalCount = await query.CountAsync(cancellationToken);
+
+        IList<UserSummaryDto> items = await query
             .OrderBy(p => p.DisplayName)
             .Skip(skip)
             .Take(pageSize)
             .Select(p => new UserSummaryDto(p.Id, p.UserId, p.DisplayName, p.AvatarUrl, p.IsOnline))
             .ToListAsync(cancellationToken);
+
+        return new PaginatedResult<UserSummaryDto>(items, totalCount, request.Page, pageSize, skip + items.Count < totalCount);
     }
 }

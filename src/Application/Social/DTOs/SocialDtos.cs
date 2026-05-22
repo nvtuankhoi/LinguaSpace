@@ -3,6 +3,8 @@ namespace LinguaSpace.Application.Social.DTOs;
 public record ConversationDto(
     int Id,
     string OtherUserId,
+    string? OtherUserDisplayName,
+    string? OtherUserAvatarUrl,
     string? LastMessage,
     DateTimeOffset? LastMessageAt,
     int UnreadCount);
@@ -13,4 +15,6 @@ public record DirectMessageDto(
     string SenderId,
     string Content,
     DateTimeOffset SentAt,
-    bool IsRead);
+    bool IsRead,
+    bool IsDeleted,
+    DateTimeOffset? EditedAt);

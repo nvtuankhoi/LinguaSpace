@@ -97,6 +97,6 @@ public class SendDmCommandHandler : IRequestHandler<SendDmCommand, DirectMessage
             new { dm.Id, dm.ConversationId, SenderId = senderId, dm.Content, dm.SentAt },
             cancellationToken);
 
-        return new DirectMessageDto(dm.Id, dm.ConversationId, senderId, dm.Content, dm.SentAt, false);
+        return new DirectMessageDto(dm.Id, dm.ConversationId, senderId, dm.Content, dm.SentAt, false, false, null);
     }
 }

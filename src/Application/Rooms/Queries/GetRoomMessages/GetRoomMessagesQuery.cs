@@ -64,7 +64,7 @@ public class GetRoomMessagesQueryHandler : IRequestHandler<GetRoomMessagesQuery,
                 m.SenderId,
                 senderNames.GetValueOrDefault(m.SenderId, "Unknown"),
                 m.Content,
-                m.Type.ToString(),
+                m.Type,
                 m.SentAt,
                 m.IsDeleted))
             .ToList();

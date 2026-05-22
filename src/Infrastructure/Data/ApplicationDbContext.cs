@@ -25,6 +25,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Reaction> Reactions => Set<Reaction>();
     public DbSet<Friendship> Friendships => Set<Friendship>();
+    public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
     public DbSet<Follow> Follows => Set<Follow>();
     public DbSet<UserXp> UserXps => Set<UserXp>();
     public DbSet<Badge> Badges => Set<Badge>();

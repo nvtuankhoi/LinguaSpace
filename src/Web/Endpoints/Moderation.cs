@@ -1,7 +1,9 @@
 using LinguaSpace.Application.Moderation.Commands.BanUser;
 using LinguaSpace.Application.Moderation.Commands.ReportContent;
 using LinguaSpace.Application.Moderation.Commands.ResolveReport;
+using LinguaSpace.Application.Moderation.Commands.UnbanUser;
 using LinguaSpace.Application.Moderation.DTOs;
+using LinguaSpace.Application.Moderation.Queries.GetReport;
 using LinguaSpace.Application.Moderation.Queries.GetReports;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -18,8 +20,10 @@ public class Moderation : IEndpointGroup
     {
         group.MapPost(ReportContent, "report").RequireAuthorization();
         group.MapGet(GetReports, "reports").RequireAuthorization();
+        group.MapGet(GetReport, "reports/{reportId}").RequireAuthorization();
         group.MapPost(ResolveReport, "reports/{reportId}/resolve").RequireAuthorization();
         group.MapPost(BanUser, "users/{userId}/ban").RequireAuthorization();
+        group.MapDelete(UnbanUser, "users/{userId}/ban").RequireAuthorization();
     }
 
     // ─── POST /api/Moderation/report ─────────────────────────────────────────
@@ -51,6 +55,20 @@ public class Moderation : IEndpointGroup
         return TypedResults.Ok(result);
     }
 
+    // ─── GET /api/Moderation/reports/{reportId} ───────────────────────────────
+
+    [EndpointSummary("Get a specific report (admin)")]
+    [EndpointDescription("Returns the details of a single moderation report by ID.")]
+    [ProducesResponseType(typeof(ReportDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public static async Task<Ok<ReportDto>> GetReport(
+        [FromRoute] int reportId,
+        ISender sender)
+    {
+        ReportDto dto = await sender.Send(new GetReportQuery(reportId));
+        return TypedResults.Ok(dto);
+    }
+
     // ─── POST /api/Moderation/reports/{reportId}/resolve ─────────────────────
 
     [EndpointSummary("Resolve or dismiss a report (admin)")]
@@ -80,6 +98,20 @@ public class Moderation : IEndpointGroup
         return TypedResults.NoContent();
     }
 
-    public record ResolveReportBody(string Action);
-    public record BanUserBody(DateTimeOffset? Until);
+    // ─── DELETE /api/Moderation/users/{userId}/ban ────────────────────────────
+
+    [EndpointSummary("Unban a user (admin)")]
+    [EndpointDescription("Removes the lockout from a user account, restoring normal access.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public static async Task<NoContent> UnbanUser(
+        [FromRoute] string userId,
+        ISender sender)
+    {
+        await sender.Send(new UnbanUserCommand(userId));
+        return TypedResults.NoContent();
+    }
+
+    public record ResolveReportBody(ReportAction Action);
+    public record BanUserBody(DateTimeOffset? Until = null);
 }

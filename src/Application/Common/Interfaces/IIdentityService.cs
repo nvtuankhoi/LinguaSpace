@@ -18,6 +18,8 @@ public interface IIdentityService
 
     Task<bool> CheckPasswordAsync(string userId, string password);
 
+    Task<Result> ChangePasswordAsync(string userId, string currentPassword, string newPassword);
+
     Task UpdateRefreshTokenAsync(string userId, string? tokenHash, DateTimeOffset? expiresAt);
 
     Task<IList<string>> GetRolesAsync(string userId);
@@ -44,6 +46,8 @@ public interface IIdentityService
 
     /// <summary>Returns true if the user's email is confirmed.</summary>
     Task<bool> IsEmailConfirmedAsync(string userId);
+
+    Task<Result> ChangeEmailAsync(string userId, string newEmail);
 
     // ─── Password reset ───────────────────────────────────────────────────────
 

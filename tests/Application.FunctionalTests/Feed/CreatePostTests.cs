@@ -1,4 +1,5 @@
 using LinguaSpace.Application.Common.Exceptions;
+using LinguaSpace.Application.Common.Models;
 using LinguaSpace.Application.Feed.Commands.AddReaction;
 using LinguaSpace.Application.Feed.Commands.CreateComment;
 using LinguaSpace.Application.Feed.Commands.CreatePost;
@@ -89,11 +90,11 @@ public class CreatePostTests : TestBase
         await TestApp.SendAsync(new CreatePostCommand(
             "Feed test post", "Text", "en", null, null, null));
 
-        IList<PostSummaryDto> feed = await TestApp.SendAsync(
+        CursorPagedResult<PostSummaryDto> feed = await TestApp.SendAsync(
             new GetFeedQuery(BeforeCursor: null, PageSize: 20));
 
-        feed.Count.ShouldBe(1);
-        feed[0].Content.ShouldBe("Feed test post");
+        feed.Items.Count.ShouldBe(1);
+        feed.Items[0].Content.ShouldBe("Feed test post");
     }
 
     [Test]
@@ -134,7 +135,7 @@ public class CreatePostTests : TestBase
         int postId = await TestApp.SendAsync(new CreatePostCommand(
             "React to me", "Text", null, null, null, null));
 
-        await TestApp.SendAsync(new AddReactionCommand(postId, "Post", "Like"));
+        await TestApp.SendAsync(new AddReactionCommand(postId, ReactionTargetType.Post, "Like"));
 
         Post? post = await TestApp.FindAsync<Post>(postId);
         post.ShouldNotBeNull();

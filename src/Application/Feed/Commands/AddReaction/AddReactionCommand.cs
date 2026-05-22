@@ -6,16 +6,13 @@ namespace LinguaSpace.Application.Feed.Commands.AddReaction;
 
 public record AddReactionCommand(
     int TargetId,
-    string TargetType,
+    ReactionTargetType TargetType,
     string ReactionType) : IRequest;
 
 public class AddReactionCommandValidator : AbstractValidator<AddReactionCommand>
 {
     public AddReactionCommandValidator()
     {
-        RuleFor(x => x.TargetType).Must(t =>
-            Enum.TryParse<ReactionTargetType>(t, ignoreCase: true, out _))
-            .WithMessage("Invalid TargetType.");
         RuleFor(x => x.ReactionType).Must(t =>
             Enum.TryParse<ReactionType>(t, ignoreCase: true, out _))
             .WithMessage("Invalid ReactionType.");
@@ -38,7 +35,7 @@ public class AddReactionCommandHandler : IRequestHandler<AddReactionCommand>
     {
         string userId = _currentUser.Id ?? throw new UnauthorizedAccessException();
 
-        Enum.TryParse(request.TargetType, ignoreCase: true, out ReactionTargetType targetType);
+        ReactionTargetType targetType = request.TargetType;
         Enum.TryParse(request.ReactionType, ignoreCase: true, out ReactionType reactionType);
 
         // Idempotent: if same type already exists, do nothing
@@ -79,7 +76,7 @@ public class AddReactionCommandHandler : IRequestHandler<AddReactionCommand>
         _context.Reactions.Add(reaction);
         await _context.SaveChangesAsync(cancellationToken);
 
-        reaction.AddDomainEvent(new ReactionAddedEvent(reaction.Id, request.TargetId, request.TargetType, userId));
+        reaction.AddDomainEvent(new ReactionAddedEvent(reaction.Id, request.TargetId, request.TargetType.ToString(), userId));
         await _context.SaveChangesAsync(cancellationToken);
     }
 

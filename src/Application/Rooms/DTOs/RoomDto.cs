@@ -9,8 +9,8 @@ public record RoomDto(
     string LanguageCode,
     int MaxParticipants,
     int ParticipantCount,
-    string Status,
-    string RoomType,
+    RoomStatus Status,
+    RoomType RoomType,
     string HostId,
     DateTimeOffset Created,
     IList<RoomParticipantDto> Participants);
@@ -21,5 +21,5 @@ public record RoomSummaryDto(
     string LanguageCode,
     int MaxParticipants,
     int ParticipantCount,
-    string RoomType,
+    RoomType RoomType,
     string HostId);

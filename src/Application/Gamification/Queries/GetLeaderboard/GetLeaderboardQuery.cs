@@ -6,7 +6,7 @@ namespace LinguaSpace.Application.Gamification.Queries.GetLeaderboard;
 /// <summary>
 /// Returns the top users ranked by total XP.
 /// </summary>
-/// <param name="Period">"all" (default) or "weekly" (active in last 7 days).</param>
+/// <param name="Period">"all" (default), "weekly" (active in last 7 days), or "monthly" (active in current calendar month).</param>
 /// <param name="Limit">Number of entries to return (1–50, default 10).</param>
 public record GetLeaderboardQuery(
     string Period = "all",
@@ -33,6 +33,11 @@ public class GetLeaderboardQueryHandler : IRequestHandler<GetLeaderboardQuery, I
         {
             DateTimeOffset cutoff = DateTimeOffset.UtcNow.AddDays(-7);
             query = query.Where(x => x.LastActivityAt >= cutoff);
+        }
+        else if (string.Equals(request.Period, "monthly", StringComparison.OrdinalIgnoreCase))
+        {
+            DateTimeOffset monthStart = new DateTimeOffset(DateTimeOffset.UtcNow.Year, DateTimeOffset.UtcNow.Month, 1, 0, 0, 0, TimeSpan.Zero);
+            query = query.Where(x => x.LastActivityAt >= monthStart);
         }
 
         List<UserXp> topXps = await query

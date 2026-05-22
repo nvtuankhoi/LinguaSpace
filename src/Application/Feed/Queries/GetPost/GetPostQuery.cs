@@ -1,3 +1,4 @@
+using System.Text.Json;
 using LinguaSpace.Application.Common.Interfaces;
 using LinguaSpace.Application.Common.Security;
 using LinguaSpace.Application.Feed.DTOs;
@@ -9,6 +10,8 @@ public record GetPostQuery(int PostId) : IRequest<PostDto?>;
 
 public class GetPostQueryHandler : IRequestHandler<GetPostQuery, PostDto?>
 {
+    private static readonly JsonSerializerOptions MetadataJsonOptions = new(JsonSerializerDefaults.Web);
+
     private readonly IApplicationDbContext _context;
 
     public GetPostQueryHandler(IApplicationDbContext context)
@@ -19,6 +22,7 @@ public class GetPostQueryHandler : IRequestHandler<GetPostQuery, PostDto?>
     public async Task<PostDto?> Handle(GetPostQuery request, CancellationToken cancellationToken)
     {
         Post? post = await _context.Posts
+            .AsNoTracking()
             .Include(p => p.Tags)
             .Include(p => p.MediaItems)
             .Include(p => p.Comments.Where(c => !c.IsDeleted && c.ParentCommentId == null))
@@ -29,18 +33,37 @@ public class GetPostQueryHandler : IRequestHandler<GetPostQuery, PostDto?>
             return null;
         }
 
+        PostMetadataDto? metadata = DeserializeMetadata(post.Metadata);
+
         return new PostDto(
             post.Id,
             post.AuthorId,
             post.Content,
             post.PostType.ToString(),
             post.LanguageCode,
-            post.Metadata,
+            metadata,
             post.LikeCount,
             post.CommentCount,
             post.Created,
             post.Tags.Select(t => t.Tag).ToList(),
             post.MediaItems.OrderBy(m => m.SortOrder).Select(m => new MediaItemDto(m.Id, m.Url, m.SortOrder)).ToList(),
             post.Comments.Select(c => new CommentDto(c.Id, c.PostId, c.AuthorId, c.Content, c.ParentCommentId, c.LikeCount, c.Created)).ToList());
+    }
+
+    private static PostMetadataDto? DeserializeMetadata(string? metadataJson)
+    {
+        if (string.IsNullOrWhiteSpace(metadataJson))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<PostMetadataDto>(metadataJson, MetadataJsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 }

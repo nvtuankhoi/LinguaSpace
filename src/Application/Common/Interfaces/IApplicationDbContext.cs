@@ -20,6 +20,7 @@ public interface IApplicationDbContext
     DbSet<Comment> Comments { get; }
     DbSet<Reaction> Reactions { get; }
     DbSet<Friendship> Friendships { get; }
+    DbSet<UserBlock> UserBlocks { get; }
     DbSet<Follow> Follows { get; }
     DbSet<UserXp> UserXps { get; }
     DbSet<Badge> Badges { get; }

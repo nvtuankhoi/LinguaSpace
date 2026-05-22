@@ -53,7 +53,7 @@ public class GenerateMediaTokenCommandHandler : IRequestHandler<GenerateMediaTok
         SfuPermissions permissions = participant.Role switch
         {
             ParticipantRole.Host => SfuPermissions.ForHost(),
-            ParticipantRole.Speaker => SfuPermissions.ForSpeaker(),
+            ParticipantRole.Speaker      => SfuPermissions.ForSpeaker(),
             _ => SfuPermissions.ForListener()
         };
 

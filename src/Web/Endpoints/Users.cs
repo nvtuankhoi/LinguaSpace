@@ -1,18 +1,26 @@
+using LinguaSpace.Application.Common.Models;
 using LinguaSpace.Application.Users.Commands.AddLanguage;
+using LinguaSpace.Application.Users.Commands.BlockUser;
+using LinguaSpace.Application.Users.Commands.CancelFriendRequest;
 using LinguaSpace.Application.Users.Commands.FollowUser;
 using LinguaSpace.Application.Users.Commands.RemoveLanguage;
 using LinguaSpace.Application.Users.Commands.RespondFriendRequest;
 using LinguaSpace.Application.Users.Commands.SendFriendRequest;
+using LinguaSpace.Application.Users.Commands.UnblockUser;
 using LinguaSpace.Application.Users.Commands.UnfollowUser;
 using LinguaSpace.Application.Users.Commands.UnfriendUser;
 using LinguaSpace.Application.Users.Commands.UpdateAvatar;
+using LinguaSpace.Application.Users.Commands.UpdateLanguage;
 using LinguaSpace.Application.Users.Commands.UpdateProfile;
 using LinguaSpace.Application.Users.DTOs;
+using LinguaSpace.Application.Users.Queries.GetBlockedUsers;
+using LinguaSpace.Application.Users.Queries.GetFriendRequests;
 using LinguaSpace.Application.Users.Queries.GetFollowers;
 using LinguaSpace.Application.Users.Queries.GetFollowing;
 using LinguaSpace.Application.Users.Queries.GetFriends;
 using LinguaSpace.Application.Users.Queries.GetUserProfile;
 using LinguaSpace.Application.Users.Queries.SearchUsers;
+using LinguaSpace.Domain.Enums;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,29 +35,30 @@ public class Users : IEndpointGroup
 {
     public static void Map(RouteGroupBuilder group)
     {
-        // All endpoints require authentication
         group.MapGet(GetUserProfile, "{userId}").RequireAuthorization();
         group.MapGet(SearchUsers).RequireAuthorization();
+        group.MapGet(GetBlockedUsers, "me/blocked").RequireAuthorization();
 
-        // ─── Profile management (own account) ────────────────────────────────
         group.MapPut(UpdateProfile, "me/profile").RequireAuthorization();
         group.MapPut(UpdateAvatar, "me/avatar").RequireAuthorization();
         group.MapPost(AddLanguage, "me/languages").RequireAuthorization();
+        group.MapPut(UpdateLanguage, "me/languages/{languageId}").RequireAuthorization();
         group.MapDelete(RemoveLanguage, "me/languages/{languageId}").RequireAuthorization();
 
-        // ─── Social features ──────────────────────────────────────────────────
+        group.MapGet(GetFriendRequests, "me/friend-requests").RequireAuthorization();
         group.MapPost(SendFriendRequest, "{userId}/friend-request").RequireAuthorization();
         group.MapPut(RespondFriendRequest, "friend-requests/{requestId}").RequireAuthorization();
+        group.MapDelete(CancelFriendRequest, "friend-requests/{requestId}").RequireAuthorization();
         group.MapPost(FollowUser, "{userId}/follow").RequireAuthorization();
         group.MapDelete(UnfollowUser, "{userId}/follow").RequireAuthorization();
+        group.MapPost(BlockUser, "{userId}/block").RequireAuthorization();
+        group.MapDelete(UnblockUser, "{userId}/block").RequireAuthorization();
 
         group.MapGet(GetFriends, "{userId}/friends").RequireAuthorization();
         group.MapGet(GetFollowers, "{userId}/followers").RequireAuthorization();
         group.MapGet(GetFollowing, "{userId}/following").RequireAuthorization();
         group.MapDelete(UnfriendUser, "{userId}/friendship").RequireAuthorization();
     }
-
-    // ─── GET /api/Users/{userId} ─────────────────────────────────────────────
 
     [EndpointSummary("Get user profile")]
     [EndpointDescription("Returns public profile for the given userId.")]
@@ -59,35 +68,25 @@ public class Users : IEndpointGroup
         [FromRoute] string userId,
         ISender sender)
     {
-        UserProfileDto? dto = await sender.Send(new GetUserProfileQuery(userId));
-
-        if (dto is null)
-        {
-            return TypedResults.NotFound();
-        }
-
+        UserProfileDto dto = await sender.Send(new GetUserProfileQuery(userId));
         return TypedResults.Ok(dto);
     }
 
-    // ─── GET /api/Users?term=&languageCode=&page=&pageSize= ─────────────────
-
     [EndpointSummary("Search users")]
     [EndpointDescription("Search users by display name and/or language. Offset-based pagination.")]
-    [ProducesResponseType(typeof(IList<UserSummaryDto>), StatusCodes.Status200OK)]
-    public static async Task<Ok<IList<UserSummaryDto>>> SearchUsers(
+    [ProducesResponseType(typeof(PaginatedResult<UserSummaryDto>), StatusCodes.Status200OK)]
+    public static async Task<Ok<PaginatedResult<UserSummaryDto>>> SearchUsers(
         ISender sender,
         [FromQuery] string? term = null,
         [FromQuery] string? languageCode = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        IList<UserSummaryDto> results = await sender.Send(
+        PaginatedResult<UserSummaryDto> results = await sender.Send(
             new SearchUsersQuery(term, languageCode, page, pageSize));
 
         return TypedResults.Ok(results);
     }
-
-    // ─── PUT /api/Users/me/profile ───────────────────────────────────────────
 
     [EndpointSummary("Update own profile")]
     [EndpointDescription("Updates the authenticated user's display name, bio, avatar, and timezone.")]
@@ -100,8 +99,6 @@ public class Users : IEndpointGroup
         await sender.Send(command);
         return TypedResults.NoContent();
     }
-
-    // ─── PUT /api/Users/me/avatar ────────────────────────────────────────────
 
     [EndpointSummary("Update avatar URL")]
     [EndpointDescription(
@@ -118,8 +115,6 @@ public class Users : IEndpointGroup
         return TypedResults.NoContent();
     }
 
-    // ─── POST /api/Users/me/languages ────────────────────────────────────────
-
     [EndpointSummary("Add language to profile")]
     [EndpointDescription("Adds a language with proficiency level to the authenticated user's profile.")]
     [ProducesResponseType(StatusCodes.Status201Created)]
@@ -132,7 +127,19 @@ public class Users : IEndpointGroup
         return TypedResults.Created($"/api/Users/me/languages/{languageId}", languageId);
     }
 
-    // ─── DELETE /api/Users/me/languages/{languageCode} ──────────────────────
+    [EndpointSummary("Update language level")]
+    [EndpointDescription("Updates the proficiency level for one of the authenticated user's languages.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public static async Task<NoContent> UpdateLanguage(
+        [FromRoute] int languageId,
+        [FromBody] UpdateLanguageBody body,
+        ISender sender)
+    {
+        await sender.Send(new UpdateLanguageCommand(languageId, body.Level));
+        return TypedResults.NoContent();
+    }
 
     [EndpointSummary("Remove language from profile")]
     [EndpointDescription("Removes the specified language entry from the authenticated user's profile.")]
@@ -147,7 +154,30 @@ public class Users : IEndpointGroup
         return TypedResults.NoContent();
     }
 
-    // ─── POST /api/Users/{userId}/friend-request ─────────────────────────────
+    [EndpointSummary("Get blocked users")]
+    [EndpointDescription("Returns a paginated list of users the current user has blocked.")]
+    [ProducesResponseType(typeof(PaginatedResult<UserSummaryDto>), StatusCodes.Status200OK)]
+    public static async Task<Ok<PaginatedResult<UserSummaryDto>>> GetBlockedUsers(
+        ISender sender,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        PaginatedResult<UserSummaryDto> result = await sender.Send(new GetBlockedUsersQuery(page, pageSize));
+        return TypedResults.Ok(result);
+    }
+
+    [EndpointSummary("Get my friend requests")]
+    [EndpointDescription("Returns incoming and outgoing pending friend requests for the authenticated user.")]
+    [ProducesResponseType(typeof(IList<FriendRequestDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public static async Task<Ok<PaginatedResult<FriendRequestDto>>> GetFriendRequests(
+        ISender sender,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        PaginatedResult<FriendRequestDto> requests = await sender.Send(new GetFriendRequestsQuery(page, pageSize));
+        return TypedResults.Ok(requests);
+    }
 
     [EndpointSummary("Send friend request")]
     [EndpointDescription("Sends a friend request to the specified user. Fails if request already exists.")]
@@ -161,8 +191,6 @@ public class Users : IEndpointGroup
         await sender.Send(new SendFriendRequestCommand(userId));
         return TypedResults.Created();
     }
-
-    // ─── PUT /api/Users/friend-requests/{requestId} ──────────────────────────
 
     [EndpointSummary("Respond to friend request")]
     [EndpointDescription("Accept or decline a pending friend request. Only the recipient can respond.")]
@@ -179,7 +207,18 @@ public class Users : IEndpointGroup
         return TypedResults.NoContent();
     }
 
-    // ─── POST /api/Users/{userId}/follow ─────────────────────────────────────
+    [EndpointSummary("Cancel friend request")]
+    [EndpointDescription("Cancels a pending friend request created by the authenticated user.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public static async Task<NoContent> CancelFriendRequest(
+        [FromRoute] int requestId,
+        ISender sender)
+    {
+        await sender.Send(new CancelFriendRequestCommand(requestId));
+        return TypedResults.NoContent();
+    }
 
     [EndpointSummary("Follow a user")]
     [EndpointDescription("Follows the specified user. Idempotent — no error if already following.")]
@@ -193,8 +232,6 @@ public class Users : IEndpointGroup
         return TypedResults.Created();
     }
 
-    // ─── DELETE /api/Users/{userId}/follow ───────────────────────────────────
-
     [EndpointSummary("Unfollow a user")]
     [EndpointDescription("Unfollows the specified user. Idempotent — no error if not following.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -207,50 +244,68 @@ public class Users : IEndpointGroup
         return TypedResults.NoContent();
     }
 
-    // ─── GET /api/Users/{userId}/friends ─────────────────────────────────────
-
-    [EndpointSummary("Get friends list")]
-    [EndpointDescription("Returns accepted friends for the specified user.")]
-    [ProducesResponseType(typeof(IList<UserSummaryDto>), StatusCodes.Status200OK)]
-    public static async Task<Ok<IList<UserSummaryDto>>> GetFriends(
+    [EndpointSummary("Block a user")]
+    [EndpointDescription("Blocks a user, hiding their content from your feed.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public static async Task<NoContent> BlockUser(
         [FromRoute] string userId,
         ISender sender)
     {
-        IList<UserSummaryDto> friends = await sender.Send(new GetFriendsQuery(userId));
+        await sender.Send(new BlockUserCommand(userId));
+        return TypedResults.NoContent();
+    }
+
+    [EndpointSummary("Unblock a user")]
+    [EndpointDescription("Removes the block on a user.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public static async Task<NoContent> UnblockUser(
+        [FromRoute] string userId,
+        ISender sender)
+    {
+        await sender.Send(new UnblockUserCommand(userId));
+        return TypedResults.NoContent();
+    }
+
+    [EndpointSummary("Get friends list")]
+    [EndpointDescription("Returns accepted friends for the specified user.")]
+    [ProducesResponseType(typeof(PaginatedResult<UserSummaryDto>), StatusCodes.Status200OK)]
+    public static async Task<Ok<PaginatedResult<UserSummaryDto>>> GetFriends(
+        [FromRoute] string userId,
+        ISender sender,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        PaginatedResult<UserSummaryDto> friends = await sender.Send(new GetFriendsQuery(userId, page, pageSize));
         return TypedResults.Ok(friends);
     }
 
-    // ─── GET /api/Users/{userId}/followers ────────────────────────────────────
-
     [EndpointSummary("Get followers list")]
     [EndpointDescription("Returns users who follow the specified user.")]
-    [ProducesResponseType(typeof(IList<UserSummaryDto>), StatusCodes.Status200OK)]
-    public static async Task<Ok<IList<UserSummaryDto>>> GetFollowers(
+    [ProducesResponseType(typeof(PaginatedResult<UserSummaryDto>), StatusCodes.Status200OK)]
+    public static async Task<Ok<PaginatedResult<UserSummaryDto>>> GetFollowers(
         [FromRoute] string userId,
         ISender sender,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        IList<UserSummaryDto> followers = await sender.Send(new GetFollowersQuery(userId, page, pageSize));
+        PaginatedResult<UserSummaryDto> followers = await sender.Send(new GetFollowersQuery(userId, page, pageSize));
         return TypedResults.Ok(followers);
     }
 
-    // ─── GET /api/Users/{userId}/following ────────────────────────────────────
-
     [EndpointSummary("Get following list")]
     [EndpointDescription("Returns users that the specified user is following.")]
-    [ProducesResponseType(typeof(IList<UserSummaryDto>), StatusCodes.Status200OK)]
-    public static async Task<Ok<IList<UserSummaryDto>>> GetFollowing(
+    [ProducesResponseType(typeof(PaginatedResult<UserSummaryDto>), StatusCodes.Status200OK)]
+    public static async Task<Ok<PaginatedResult<UserSummaryDto>>> GetFollowing(
         [FromRoute] string userId,
         ISender sender,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        IList<UserSummaryDto> following = await sender.Send(new GetFollowingQuery(userId, page, pageSize));
+        PaginatedResult<UserSummaryDto> following = await sender.Send(new GetFollowingQuery(userId, page, pageSize));
         return TypedResults.Ok(following);
     }
-
-    // ─── DELETE /api/Users/{userId}/friendship ────────────────────────────────
 
     [EndpointSummary("Remove friendship")]
     [EndpointDescription("Deletes the accepted friendship between the current user and the specified user.")]
@@ -264,12 +319,7 @@ public class Users : IEndpointGroup
         return TypedResults.NoContent();
     }
 
-    // ─── Request body record ──────────────────────────────────────────────────
-
-    /// <summary>
-    /// Body for RespondFriendRequest endpoint.
-    /// A simple wrapper because RespondFriendRequestCommand has both route param (requestId)
-    /// and body param (accept), so we can't bind the entire command from a single source.
-    /// </summary>
     public record RespondFriendRequestBody(bool Accept);
+
+    public record UpdateLanguageBody(LanguageLevel? Level);
 }
