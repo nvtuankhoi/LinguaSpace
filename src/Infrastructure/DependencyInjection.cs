@@ -50,7 +50,16 @@ public static class DependencyInjection
         // the Identity Bearer token endpoints (/login, /register) which conflict
         // with our custom JWT endpoints.
         builder.Services
-            .AddIdentityCore<ApplicationUser>()
+            .AddIdentityCore<ApplicationUser>(options =>
+            {
+                // Align with RegisterCommandValidator: 8+ chars, no other constraints enforced by Identity.
+                // FluentValidation is the single source of truth for password rules and gives clearer errors.
+                options.Password.RequiredLength = 8;
+                options.Password.RequireDigit = false;
+                options.Password.RequireLowercase = false;
+                options.Password.RequireUppercase = false;
+                options.Password.RequireNonAlphanumeric = false;
+            })
             .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<ApplicationDbContext>();
 
