@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/api/Messages
+  url: {{baseUrl}}/api/Social/dm
   body: json
   auth: bearer
 }
@@ -16,11 +16,18 @@ auth:bearer {
 
 body:json {
   {
-    "recipientId": "TARGET_USER_ID",
+    "recipientId": "{{targetUserId}}",
     "content": "Hey! Want to practice together?"
   }
 }
 
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("conversationId", res.body.conversationId);
+  }
+}
+
 docs {
-  Replace TARGET_USER_ID with the target user's userId string.
+  Sends a direct message to the user specified by targetUserId.
+  Saves the conversationId from the response.
 }

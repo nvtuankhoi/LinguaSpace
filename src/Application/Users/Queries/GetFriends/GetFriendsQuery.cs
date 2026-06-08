@@ -24,24 +24,21 @@ public class GetFriendsQueryHandler : IRequestHandler<GetFriendsQuery, Paginated
         int pageSize = Math.Min(request.PageSize, MaxPageSize);
         int skip = (request.Page - 1) * pageSize;
 
-        IQueryable<UserSummaryDto> requesterFriendsQuery =
-            from friendship in _context.Friendships.AsNoTracking()
-            join profile in _context.UserProfiles.AsNoTracking() on friendship.AddresseeId equals profile.UserId
-            where friendship.Status == FriendshipStatus.Accepted
-                && friendship.RequesterId == request.UserId
-            select new UserSummaryDto(profile.Id, profile.UserId, profile.DisplayName, profile.AvatarUrl, profile.IsOnline);
+        IQueryable<string> requesterFriendIds = _context.Friendships.AsNoTracking()
+            .Where(f => f.Status == FriendshipStatus.Accepted && f.RequesterId == request.UserId)
+            .Select(f => f.AddresseeId);
 
-        IQueryable<UserSummaryDto> addresseeFriendsQuery =
-            from friendship in _context.Friendships.AsNoTracking()
-            join profile in _context.UserProfiles.AsNoTracking() on friendship.RequesterId equals profile.UserId
-            where friendship.Status == FriendshipStatus.Accepted
-                && friendship.AddresseeId == request.UserId
-            select new UserSummaryDto(profile.Id, profile.UserId, profile.DisplayName, profile.AvatarUrl, profile.IsOnline);
+        IQueryable<string> addresseeFriendIds = _context.Friendships.AsNoTracking()
+            .Where(f => f.Status == FriendshipStatus.Accepted && f.AddresseeId == request.UserId)
+            .Select(f => f.RequesterId);
 
-        IQueryable<UserSummaryDto> query = requesterFriendsQuery
-            .Concat(addresseeFriendsQuery)
-            .OrderBy(profile => profile.DisplayName)
-            .ThenBy(profile => profile.UserId);
+        IQueryable<string> friendIdsQuery = requesterFriendIds.Concat(addresseeFriendIds);
+
+        IQueryable<UserSummaryDto> query =
+            from profile in _context.UserProfiles.AsNoTracking()
+            join friendId in friendIdsQuery on profile.UserId equals friendId
+            orderby profile.DisplayName, profile.UserId
+            select new UserSummaryDto(profile.Id, profile.UserId, profile.DisplayName, profile.AvatarUrl, profile.IsOnline);
 
         int totalCount = await query.CountAsync(cancellationToken);
 

@@ -1,0 +1,18 @@
+meta {
+  name: Register Alternative User
+  type: http
+  seq: 0
+}
+
+post {
+  url: {{baseUrl}}/api/Auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "test2@example.com",
+    "password": "Test@1234!"
+  }
+}

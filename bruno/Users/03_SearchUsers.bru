@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/api/Users?query=test&languageCode=en&page=1&pageSize=10
+  url: {{baseUrl}}/api/Users?term=test&languageCode=en&page=1&pageSize=10
   body: none
   auth: bearer
 }
@@ -14,9 +14,19 @@ auth:bearer {
   token: {{accessToken}}
 }
 
+script:post-response {
+  if (res.status === 200 && res.body.items && res.body.items.length > 0) {
+    const currentUserId = bru.getEnvVar("userId");
+    const peer = res.body.items.find(u => u.id !== currentUserId) || res.body.items[0];
+    if (peer) {
+      bru.setEnvVar("targetUserId", peer.id);
+    }
+  }
+}
+
 docs {
   Query params:
-  - query       : search term (display name / email)
+  - term        : search term (display name / email)
   - languageCode: filter by language (e.g. en, vi, ja)
   - page        : page number (default 1)
   - pageSize    : results per page (default 20)

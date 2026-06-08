@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using LinguaSpace.Application.Common.Interfaces;
 using LinguaSpace.Infrastructure.Auth;
 using LinguaSpace.Infrastructure.Cache;
@@ -61,7 +61,8 @@ public static class DependencyInjection
                 options.Password.RequireNonAlphanumeric = false;
             })
             .AddRoles<IdentityRole>()
-            .AddEntityFrameworkStores<ApplicationDbContext>();
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddDefaultTokenProviders();
 
         // ─── JWT Authentication ───────────────────────────────────────────────
         // We read key/issuer/audience from appsettings.json "Jwt" section.

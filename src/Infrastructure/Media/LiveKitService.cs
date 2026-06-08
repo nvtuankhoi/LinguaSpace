@@ -108,8 +108,15 @@ public class LiveKitService : ISfuService
         string roomName,
         CancellationToken cancellationToken = default)
     {
-        RoomServiceClient client = CreateRoomClient();
-        await client.DeleteRoom(new DeleteRoomRequest { Room = roomName });
+        try
+        {
+            RoomServiceClient client = CreateRoomClient();
+            await client.DeleteRoom(new DeleteRoomRequest { Room = roomName });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to end LiveKit room {RoomName}. LiveKit host may be offline.", roomName);
+        }
     }
 
     public bool VerifyWebhookSignature(string rawBody, string authHeader)

@@ -22,9 +22,11 @@ var redis = builder
 var liveKit = builder
     .AddContainer(Services.LiveKit, "livekit/livekit-server", "latest")
     .WithLifetime(ContainerLifetime.Persistent)
-    .WithEndpoint(port: 7880, targetPort: 7880, name: "http")
-    .WithEndpoint(port: 7881, targetPort: 7881, name: "rtc-tcp")
-    .WithArgs("--dev");   // --dev enables no-auth TURN, generates key=devkey secret=secret
+    .WithEndpoint(port: 7880, targetPort: 7880, name: "http", isProxied: false)
+    .WithEndpoint(port: 7881, targetPort: 7881, name: "rtc-tcp", isProxied: false)
+    .WithEndpoint(port: 7882, targetPort: 7882, protocol: System.Net.Sockets.ProtocolType.Udp, name: "rtc-udp", isProxied: false)
+    .WithEnvironment("LIVEKIT_KEYS", "devkey: devsecret-must-be-at-least-32-chars-long!")
+    .WithArgs("--dev", "--node-ip", "127.0.0.1");   // --dev enables no-auth TURN, generates key=devkey secret=secret
 
 var web = builder.AddProject<Projects.Web>(Services.WebApi)
     .WithReference(databaseServer)
