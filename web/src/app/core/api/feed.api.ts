@@ -1,0 +1,88 @@
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { inject, Injectable } from '@angular/core';
+
+import { environment } from '../../../environments/environment';
+import {
+  CommentDto,
+  CreateCommentRequest,
+  CreatePostRequest,
+  CursorPagedResult,
+  PaginatedResult,
+  PostDto,
+  PostSummaryDto,
+  ReactionType,
+  UpdateCommentRequest,
+  UpdatePostRequest,
+} from '../models';
+
+@Injectable({ providedIn: 'root' })
+export class FeedApi {
+  private readonly http = inject(HttpClient);
+  private readonly base = environment.apiBaseUrl;
+
+  getFeed(beforeCursor: string | null = null, pageSize = 8) {
+    let params = new HttpParams().set('pageSize', pageSize);
+    if (beforeCursor) params = params.set('beforeCursor', beforeCursor);
+    return this.http.get<CursorPagedResult<PostSummaryDto>>(`${this.base}/Feed`, { params, withCredentials: true });
+  }
+
+  getExplore(opts: { languageCode?: string; postType?: string; beforeCursor?: string | null; pageSize?: number } = {}) {
+    let params = new HttpParams().set('pageSize', opts.pageSize ?? 8);
+    if (opts.languageCode) params = params.set('languageCode', opts.languageCode);
+    if (opts.postType) params = params.set('postType', opts.postType);
+    if (opts.beforeCursor) params = params.set('beforeCursor', opts.beforeCursor);
+    return this.http.get<CursorPagedResult<PostSummaryDto>>(`${this.base}/Feed/explore`, { params, withCredentials: true });
+  }
+
+  getPost(id: number) {
+    return this.http.get<PostDto>(`${this.base}/Feed/posts/${id}`, { withCredentials: true });
+  }
+
+  getUserPosts(userId: string, opts: { beforeCursor?: string | null; pageSize?: number } = {}) {
+    let params = new HttpParams().set('pageSize', opts.pageSize ?? 8);
+    if (opts.beforeCursor) params = params.set('beforeCursor', opts.beforeCursor);
+    return this.http.get<CursorPagedResult<PostSummaryDto>>(`${this.base}/Feed/users/${userId}`, { params, withCredentials: true });
+  }
+
+  getComments(postId: number) {
+    return this.http.get<PaginatedResult<CommentDto>>(`${this.base}/Feed/posts/${postId}/comments`, {
+      withCredentials: true,
+    });
+  }
+
+  createPost(req: CreatePostRequest) {
+    return this.http.post<{ postId: number }>(`${this.base}/Feed/posts`, req, { withCredentials: true });
+  }
+
+  addComment(postId: number, req: CreateCommentRequest) {
+    return this.http.post<{ commentId: number }>(`${this.base}/Feed/posts/${postId}/comments`, req, {
+      withCredentials: true,
+    });
+  }
+
+  react(postId: number, reactionType: ReactionType) {
+    return this.http.post(`${this.base}/Feed/posts/${postId}/reactions`, { reactionType }, { withCredentials: true });
+  }
+
+  removeReaction(postId: number, reactionType: ReactionType) {
+    return this.http.delete(`${this.base}/Feed/posts/${postId}/reactions/${reactionType}`, {
+      withCredentials: true,
+    });
+  }
+
+  deletePost(postId: number) {
+    return this.http.delete(`${this.base}/Feed/posts/${postId}`, { withCredentials: true });
+  }
+
+  deleteComment(commentId: number) {
+    return this.http.delete(`${this.base}/Feed/comments/${commentId}`, { withCredentials: true });
+  }
+
+  updatePost(postId: number, req: UpdatePostRequest) {
+    return this.http.put(`${this.base}/Feed/posts/${postId}`, req, { withCredentials: true });
+  }
+
+  updateComment(commentId: number, req: UpdateCommentRequest) {
+    return this.http.put(`${this.base}/Feed/comments/${commentId}`, req, { withCredentials: true });
+  }
+}

@@ -1,0 +1,113 @@
+<div class="thread-detail">
+  @if (status() === 'loading' && !active()) {
+    <div class="state muted">Loading conversation…</div>
+  } @else if (status() === 'error' && !active()) {
+    <div class="state card">
+      <p>Could not open this conversation.</p>
+      <a class="btn btn-secondary" routerLink="/app/messages">Back to messages</a>
+    </div>
+  } @else if (active(); as conv) {
+    <header class="thread-head">
+      <div class="head-main">
+        <a class="back" routerLink="/app/messages" aria-label="Back to messages">
+          <app-icon name="arrow-right" [size]="18" />
+        </a>
+        <app-avatar
+          [name]="conv.otherUserDisplayName ?? ''"
+          [src]="conv.otherUserAvatarUrl"
+          [online]="true"
+          [size]="36"
+        />
+        <div>
+          <h1>{{ conv.otherUserDisplayName ?? 'Unknown' }}</h1>
+          <p class="meta muted">Direct message · <span class="online-label">Online</span></p>
+        </div>
+      </div>
+    </header>
+
+    <div class="thread-wrap">
+      <div class="thread" #thread (scroll)="onThreadScroll()">
+        @if (!groups().length && status() !== 'loading') {
+          <div class="empty-chat">
+            <app-icon name="messages" [size]="24" />
+            <p class="muted">Start the conversation.</p>
+          </div>
+        }
+
+        @for (group of groups(); track group.senderId + group.messages[0].id) {
+          <div class="msg-group" [class.mine]="group.isMine">
+            @if (!group.isMine) {
+              <app-avatar
+                [name]="conv.otherUserDisplayName ?? ''"
+                [src]="conv.otherUserAvatarUrl"
+                [size]="28"
+                class="group-avatar"
+              />
+            }
+            <div class="group-bubbles">
+              @for (m of group.messages; track m.id; let last = $last) {
+                <div class="bubble" [class.bubble-last]="last" [class.deleted]="m.isDeleted">
+                  @if (editingId() === m.id) {
+                    <form class="bubble-edit" (ngSubmit)="saveEdit()">
+                      <textarea
+                        [value]="editText()"
+                        (input)="onEditInput($event)"
+                        maxlength="1000"
+                        rows="2"
+                      ></textarea>
+                      <div class="bubble-edit-actions">
+                        <button class="link-action" type="button" (click)="cancelEdit()">Cancel</button>
+                        <button class="btn btn-primary btn-sm" type="submit" [disabled]="!editText().trim()">Save</button>
+                      </div>
+                    </form>
+                  } @else {
+                    <p>{{ m.isDeleted ? '[deleted]' : m.content }}</p>
+                    @if (!m.isDeleted && isMine(m)) {
+                      <div class="bubble-actions">
+                        <button class="link-action" type="button" (click)="startEdit(m)">Edit</button>
+                        <button class="link-action danger" type="button" (click)="deleteMsg(m)">Delete</button>
+                      </div>
+                    }
+                  }
+                  @if (last) {
+                    <span class="time muted">
+                      {{ time(m.sentAt) }}
+                      @if (m.editedAt) { <span class="edited">· edited</span> }
+                    </span>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Scroll to bottom button -->
+      @if (showScrollBtn()) {
+        <button
+          class="scroll-btn"
+          type="button"
+          (click)="scrollDown()"
+          aria-label="Scroll to latest messages"
+        >
+          @if (hasNewMessages()) {
+            <span class="new-dot" aria-label="New messages"></span>
+          }
+          <app-icon name="arrow-right" [size]="16" style="transform: rotate(90deg)" />
+        </button>
+      }
+    </div>
+
+    <form class="composer" [formGroup]="form" (ngSubmit)="send()">
+      <input
+        type="text"
+        formControlName="content"
+        placeholder="Write a message…"
+        (input)="onInput($event)"
+        autocomplete="off"
+        maxlength="1000"
+      />
+      <button class="btn btn-primary" type="submit" [disabled]="!form.controls.content.value.trim()">Send</button>
+    </form>
+  }
+</div>

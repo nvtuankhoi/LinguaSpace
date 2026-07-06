@@ -1,0 +1,195 @@
+// Canonical component primitives — mirror .impeccable/design.json.
+// These are the shared library seeds; feature components compose on top of them.
+
+// ---- Buttons ----
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ls-space-2);
+  font-family: var(--ls-font-sans);
+  font-size: var(--ls-text-label);
+  font-weight: var(--ls-weight-semibold);
+  line-height: var(--ls-leading-snug);
+  letter-spacing: 0.005em;
+  border: 0;
+  border-radius: var(--ls-radius-md);
+  padding: 10px 20px;
+  cursor: pointer;
+  transform: translateY(0);
+  transition: background var(--ls-duration-base) var(--ls-ease-out),
+              color var(--ls-duration-base) var(--ls-ease-out),
+              border-color var(--ls-duration-base) var(--ls-ease-out),
+              box-shadow var(--ls-duration-base) var(--ls-ease-out),
+              transform var(--ls-duration-base) var(--ls-ease-out),
+              filter var(--ls-duration-base) var(--ls-ease-out);
+}
+.btn:hover:not(:disabled) { transform: translateY(-1px); }
+.btn:active:not(:disabled) { transform: scale(0.98) translateY(0); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.btn-primary { 
+  background: var(--ls-primary); 
+  color: var(--ls-on-primary); 
+  box-shadow: inset 0 1px 0 color-mix(in oklch, white 20%, transparent), 0 1px 2px color-mix(in oklch, var(--ls-primary) 30%, transparent);
+}
+.btn-primary:hover,
+.btn-primary:active { background: var(--ls-primary-strong); }
+
+.btn-secondary {
+  background: var(--ls-surface-strong);
+  color: var(--ls-ink);
+  border: 1px solid var(--ls-border);
+}
+.btn-secondary:hover { background: var(--ls-surface); border-color: var(--ls-border-strong); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ls-muted);
+  border-radius: var(--ls-radius-pill);
+  padding: var(--ls-space-2);
+}
+.btn-ghost:hover { background: var(--ls-primary-tint); color: var(--ls-primary); }
+
+.btn-danger { background: var(--ls-danger); color: var(--ls-on-danger); }
+.btn-danger:hover { filter: brightness(0.96); }
+
+// ---- Inline link-style action (Reply / Edit / Delete row under content) ----
+.link-action {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--ls-text-caption);
+  font-weight: var(--ls-weight-medium);
+  color: var(--ls-muted);
+  transition: color var(--ls-duration-fast) var(--ls-ease-out);
+}
+.link-action:hover { color: var(--ls-ink); }
+.link-action.danger:hover { color: var(--ls-danger); }
+
+// ---- Chips ----
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ls-space-1);
+  background: var(--ls-primary-tint);
+  color: var(--ls-primary);
+  border-radius: var(--ls-radius-pill);
+  padding: 4px 10px;
+  font-size: var(--ls-text-label);
+  font-weight: var(--ls-weight-semibold);
+}
+.chip-honey { background: var(--ls-accent-tint); color: var(--ls-on-accent); }
+
+// ---- Status (always icon + label, never color alone) ----
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ls-space-1);
+  font-size: var(--ls-text-sm);
+  font-weight: var(--ls-weight-medium);
+  color: var(--ls-muted);
+}
+.status-success { color: var(--ls-success); }
+.status-warning { color: var(--ls-warning); }
+.status-danger  { color: var(--ls-danger); }
+
+// ---- Cards — flat at rest, 1px border, lift on hover. Never nested. ----
+.card {
+  background: var(--ls-surface);
+  border: 1px solid color-mix(in oklch, var(--ls-border) 60%, transparent);
+  border-radius: var(--ls-radius-lg);
+  padding: var(--ls-space-5);
+  box-shadow: 0 1px 3px color-mix(in oklch, var(--ls-ink) 2%, transparent);
+  transition: box-shadow var(--ls-duration-base) var(--ls-ease-out),
+              transform var(--ls-duration-base) var(--ls-ease-out),
+              border-color var(--ls-duration-base) var(--ls-ease-out);
+}
+.card:hover { 
+  box-shadow: var(--ls-shadow-lift); 
+  border-color: var(--ls-border); 
+  transform: translateY(-2px);
+}
+.card h3 { font-size: var(--ls-text-subtitle); margin-bottom: var(--ls-space-1); }
+
+// ---- Forms (shared across login / register / settings) ----
+.field { display: flex; flex-direction: column; gap: var(--ls-space-1); }
+.field > span {
+  font-size: var(--ls-text-label);
+  font-weight: var(--ls-weight-semibold);
+  color: var(--ls-ink);
+}
+input, textarea, select {
+  width: 100%;
+  background: var(--ls-bg);
+  color: var(--ls-ink);
+  border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-md);
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: var(--ls-text-body);
+  line-height: 1.5;
+  transition: border-color var(--ls-duration-base) var(--ls-ease-out),
+              background-color var(--ls-duration-base) var(--ls-ease-out),
+              box-shadow var(--ls-duration-base) var(--ls-ease-out);
+}
+input::placeholder, textarea::placeholder { color: var(--ls-muted); }
+input:hover, textarea:hover, select:hover { border-color: var(--ls-border-strong); }
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  background: var(--ls-surface);
+  border-color: var(--ls-primary);
+  box-shadow: var(--ls-ring-focus);
+}
+.btn-block { width: 100%; }
+.or {
+  display: flex;
+  align-items: center;
+  gap: var(--ls-space-3);
+  color: var(--ls-muted);
+  font-size: var(--ls-text-sm);
+}
+.or::before, .or::after { content: ''; flex: 1; height: 1px; background: var(--ls-border); }
+.alert {
+  background: var(--ls-danger-tint);
+  color: var(--ls-danger);
+  border: 1px solid color-mix(in oklch, var(--ls-danger) 28%, transparent);
+  border-radius: var(--ls-radius-sm);
+  padding: var(--ls-space-2) var(--ls-space-3);
+  font-size: var(--ls-text-sm);
+}
+
+// ---- Auth screen layout (login / register) ----
+.auth {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ls-space-4);
+  padding: var(--ls-space-6) var(--ls-space-4);
+  background: var(--ls-bg);
+}
+.auth-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ls-space-2);
+  color: var(--ls-muted);
+  font-weight: var(--ls-weight-semibold);
+  text-decoration: none;
+  transition: color var(--ls-duration-fast) var(--ls-ease-out);
+}
+.auth-back:hover { color: var(--ls-ink); }
+.auth-card {
+  width: min(100%, 400px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ls-space-4);
+}
+.auth-card h1 { font-size: var(--ls-text-display); }
+.auth-card > div > .muted { margin-top: var(--ls-space-1); font-size: var(--ls-text-sm); }
+.auth-card form { display: flex; flex-direction: column; gap: var(--ls-space-4); }
+.switch { font-size: var(--ls-text-sm); text-align: center; margin: 0; }
+.switch a { font-weight: var(--ls-weight-semibold); }

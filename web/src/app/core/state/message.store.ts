@@ -78,6 +78,40 @@ export const MessageStore = signalStore(
 
       appendMessage: appendDm,
 
+      /** Edits the current user's own DM. Server sets EditedAt; mirror it locally. */
+      async editMessage(messageId: number, content: string): Promise<void> {
+        const trimmed = content.trim();
+        if (!trimmed) {
+          return;
+        }
+        try {
+          await firstValueFrom(api.editDm(messageId, { content: trimmed }));
+          patchState(store, {
+            messages: store.messages().map((m) =>
+              m.id === messageId
+                ? { ...m, content: trimmed, editedAt: new Date().toISOString() }
+                : m,
+            ),
+          });
+        } catch {
+          /* surfaced elsewhere */
+        }
+      },
+
+      /** Soft-deletes the current user's own DM (server sets IsDeleted + content). */
+      async deleteMessage(messageId: number): Promise<void> {
+        try {
+          await firstValueFrom(api.deleteDm(messageId));
+          patchState(store, {
+            messages: store.messages().map((m) =>
+              m.id === messageId ? { ...m, isDeleted: true, content: '[deleted]' } : m,
+            ),
+          });
+        } catch {
+          /* surfaced elsewhere */
+        }
+      },
+
       /**
        * Handles a live incoming DM pushed by PresenceHub's "NewDirectMessage".
        * - Open conversation: append to the thread (ascending) and re-mark read so

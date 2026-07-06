@@ -1,0 +1,197 @@
+:host { display: block; }
+
+.post { display: flex; flex-direction: column; gap: var(--ls-space-3); }
+
+.post-head {
+  display: flex;
+  align-items: center;
+  gap: var(--ls-space-3);
+}
+.post-meta { display: flex; flex-direction: column; line-height: 1.3; }
+.author { font-weight: var(--ls-weight-semibold); font-size: var(--ls-text-sm); }
+.author.sm { font-size: var(--ls-text-sm); }
+.sub { font-size: var(--ls-text-caption); cursor: default; }
+app-lang-chip { margin-inline-start: auto; }
+.btn-report { flex-shrink: 0; padding: 4px; color: var(--ls-muted); }
+.btn-report:hover { color: var(--ls-danger); }
+
+.comment-actions { display: flex; gap: var(--ls-space-3); margin-top: 2px; }
+.add-comment.reply { margin-top: var(--ls-space-2); }
+
+.post-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-width: 72ch;
+  line-height: var(--ls-leading-normal);
+}
+
+.tags { display: flex; flex-wrap: wrap; gap: var(--ls-space-2); }
+.tag { color: var(--ls-muted); font-size: var(--ls-text-sm); }
+
+// ---- Actions row ----
+.post-actions {
+  display: flex;
+  gap: var(--ls-space-1);
+  padding-top: var(--ls-space-1);
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ls-space-1);
+  background: transparent;
+  border: 0;
+  color: var(--ls-muted);
+  font-size: var(--ls-text-sm);
+  font-weight: var(--ls-weight-medium);
+  padding: var(--ls-space-1) var(--ls-space-2);
+  border-radius: var(--ls-radius-sm);
+  cursor: pointer;
+  transition: background var(--ls-duration-fast) var(--ls-ease-out),
+              color var(--ls-duration-fast) var(--ls-ease-out);
+  font-family: inherit;
+}
+.action:hover { background: var(--ls-surface-strong); color: var(--ls-ink); }
+.action.active { color: var(--ls-primary); }
+
+// ---- Reaction emoji ----
+.reaction-icon {
+  font-size: 1.1em;
+  line-height: 1;
+  display: inline-block;
+  transition: transform var(--ls-duration-fast) var(--ls-ease-out);
+}
+.action:hover .reaction-icon { transform: scale(1.15); }
+
+@keyframes bounce-once {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.45); }
+  60%  { transform: scale(0.9); }
+  80%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+.reaction-icon.bounce { animation: bounce-once 0.38s var(--ls-ease-out) forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .reaction-icon.bounce { animation: none; }
+}
+
+// ---- Reaction picker popover ----
+.reaction-wrap { position: relative; }
+
+.reaction-picker {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  display: flex;
+  gap: var(--ls-space-1);
+  background: var(--ls-surface);
+  border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-pill);
+  padding: var(--ls-space-2) var(--ls-space-2);
+  box-shadow: var(--ls-shadow-lift);
+  z-index: var(--ls-z-dropdown);
+  animation: picker-pop 0.15s var(--ls-ease-out) both;
+}
+@keyframes picker-pop {
+  from { opacity: 0; transform: scale(0.85) translateY(4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reaction-picker { animation: none; }
+}
+
+.reaction-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  font-size: 1.3em;
+  line-height: 1;
+  background: transparent;
+  border: 0;
+  border-radius: var(--ls-radius-pill);
+  cursor: pointer;
+  transition: transform var(--ls-duration-fast) var(--ls-ease-out),
+              background var(--ls-duration-fast) var(--ls-ease-out);
+}
+.reaction-option:hover { transform: scale(1.3); background: var(--ls-surface-strong); }
+.reaction-option.chosen { background: var(--ls-primary-tint); }
+
+// ---- Comments section ----
+.comments {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ls-space-3);
+  padding-top: var(--ls-space-3);
+  border-top: 1px solid var(--ls-border);
+  margin-top: var(--ls-space-1);
+}
+.comment { display: flex; gap: var(--ls-space-2); align-items: flex-start; }
+.comment.reply { padding-inline-start: var(--ls-space-6); }
+.comment-body { display: flex; flex-direction: column; gap: 2px; }
+.comment-body p { font-size: var(--ls-text-sm); max-width: 60ch; }
+
+// Skeleton for comments loading
+.sk-comments { display: flex; flex-direction: column; gap: var(--ls-space-2); }
+.sk-comment-row { display: flex; align-items: center; gap: var(--ls-space-2); }
+.sk-c-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--ls-radius-pill);
+  background: var(--ls-surface-strong);
+  flex-shrink: 0;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+.sk-c-lines { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk-c-avatar { animation: none; }
+}
+
+// shared sk-line from feed component won't cascade here; define locally
+.sk-line {
+  display: block;
+  height: 11px;
+  border-radius: var(--ls-radius-sm);
+  background: var(--ls-surface-strong);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+.sk-line.short { width: 35%; }
+.sk-line.med   { width: 60%; }
+
+.add-comment { display: flex; gap: var(--ls-space-2); align-items: center; flex-wrap: wrap; }
+.add-comment input { flex: 1; min-width: 120px; }
+
+// ---- Inline post edit ----
+.post-edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ls-space-2);
+  max-width: 72ch;
+}
+.post-edit-input {
+  width: 100%;
+  min-height: 84px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: var(--ls-text-base);
+  line-height: var(--ls-leading-normal);
+}
+.post-edit-lang {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ls-space-2);
+  select {
+    font-family: inherit;
+    font-size: var(--ls-text-sm);
+  }
+}
+.post-edit-actions {
+  display: flex;
+  gap: var(--ls-space-2);
+  justify-content: flex-end;
+}

@@ -57,6 +57,8 @@ export class MessageThreadComponent implements OnInit, AfterViewChecked {
   /** Whether the scroll container is scrolled far enough from the bottom to show the button */
   protected readonly showScrollBtn = signal(false);
   protected readonly hasNewMessages = signal(false);
+  protected readonly editingId = signal<number | null>(null);
+  protected readonly editText = signal('');
   private wasAtBottom = true;
   private prevMessageCount = 0;
 
@@ -155,6 +157,42 @@ export class MessageThreadComponent implements OnInit, AfterViewChecked {
     this.form.reset();
     await this.store.send(content);
     this.scrollToBottom();
+  }
+
+  protected startEdit(m: DirectMessageDto): void {
+    this.editingId.set(m.id);
+    this.editText.set(m.content);
+  }
+
+  protected cancelEdit(): void {
+    this.editingId.set(null);
+    this.editText.set('');
+  }
+
+  protected onEditInput(event: Event): void {
+    this.editText.set((event.target as HTMLTextAreaElement).value);
+  }
+
+  protected async saveEdit(): Promise<void> {
+    const id = this.editingId();
+    if (id == null) {
+      return;
+    }
+    const text = this.editText().trim();
+    if (!text) {
+      return;
+    }
+    await this.store.editMessage(id, text);
+    this.editingId.set(null);
+    this.editText.set('');
+    this.scrollToBottom();
+  }
+
+  protected async deleteMsg(m: DirectMessageDto): Promise<void> {
+    if (!confirm('Delete this message?')) {
+      return;
+    }
+    await this.store.deleteMessage(m.id);
   }
 
   protected onInput(event: Event): void {

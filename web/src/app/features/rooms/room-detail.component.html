@@ -1,0 +1,238 @@
+<div class="room-detail">
+  @if (status() === 'loading' && !current()) {
+    <div class="state muted">Loading room…</div>
+  } @else if (status() === 'error' && !current()) {
+    <div class="state card">
+      <p>Could not open this room.</p>
+      <a class="btn btn-secondary" routerLink="/app/rooms">Back to rooms</a>
+    </div>
+  } @else if (current(); as room) {
+    <div class="room-layout" [attr.data-type]="room.roomType">
+      
+      @if (room.roomType === 'VideoEnabled') {
+        <div class="stage">
+          <div class="video-grid" [class.has-tiles]="avConnected() && videoTiles().length > 0">
+            @if (!avConnected()) {
+              <div class="join-prompt card">
+                <div class="prompt-icon"><app-icon name="camera" [size]="32" /></div>
+                <h3>Ready to join?</h3>
+                <p class="muted">Join with video to see other learners.</p>
+                @if (avError()) {
+                  <p class="av-error">{{ avError() }}</p>
+                }
+                <button class="btn btn-primary" type="button" (click)="joinAv()" [disabled]="avConnecting()">
+                  {{ avConnecting() ? 'Connecting…' : 'Join Video' }}
+                </button>
+              </div>
+            } @else {
+              @for (tile of videoTiles(); track tile.identity) {
+                <div class="video-tile" [class.is-local]="tile.isLocal">
+                  @if (tile.videoTrack) {
+                    <video
+                      #videoEl
+                      [attr.data-identity]="tile.identity"
+                      autoplay
+                      playsinline
+                      [muted]="tile.isLocal"
+                    ></video>
+                  } @else {
+                    <app-avatar [name]="tile.displayName" [size]="64" />
+                  }
+                  <div class="tile-label">{{ tile.displayName }}</div>
+                </div>
+              }
+            }
+          </div>
+        </div>
+      }
+
+      <div class="sidebar">
+        <header class="room-head">
+          <div class="room-head-main">
+            <a class="back" routerLink="/app/rooms" aria-label="Back to rooms">
+              <app-icon name="arrow-right" [size]="18" />
+            </a>
+            <div>
+              <div class="room-head-top">
+                <h1 class="truncate-text" [title]="room.title">{{ room.title }}</h1>
+                <app-lang-chip [code]="room.languageCode" />
+              </div>
+              <p class="muted meta">
+                <span class="room-type-badge" [class]="'type-' + room.roomType.toLowerCase()">
+                  <app-icon [name]="roomTypeIcon(room.roomType)" [size]="14" />
+                  {{ roomTypeLabel(room.roomType) }}
+                </span>
+                • {{ room.participants.length }} / {{ room.maxParticipants }}
+              </p>
+            </div>
+          </div>
+          <div class="room-head-actions">
+            @if (room.roomType !== 'VideoEnabled') {
+              <div class="participants" aria-label="Participants">
+                @for (p of room.participants; track p.userId) {
+                  <app-avatar [name]="p.displayName" [src]="p.avatarUrl" [online]="true" [presence]="false" [size]="32" [title]="p.displayName" />
+                }
+              </div>
+            }
+            @if (isHost()) {
+              <button class="btn btn-secondary btn-sm" type="button" (click)="openManage()">Manage</button>
+            }
+          </div>
+        </header>
+
+        <!-- Voice/Video controls for AV rooms -->
+        @if (room.roomType !== 'TextOnly') {
+          <div class="av-bar" [class.av-active]="avConnected()" role="toolbar" aria-label="Voice controls">
+            <div class="av-status">
+              @if (avConnected()) {
+                <span class="av-dot connected"></span>
+                <span class="av-label">Live</span>
+              } @else {
+                <span class="av-dot"></span>
+                <span class="av-label muted">Not connected</span>
+              }
+            </div>
+
+            <div class="av-controls">
+              <button
+                class="av-btn"
+                [class.muted-btn]="micMuted()"
+                type="button"
+                (click)="toggleMic()"
+                [attr.aria-label]="micMuted() ? 'Unmute microphone' : 'Mute microphone'"
+                [attr.aria-pressed]="micMuted()"
+              >
+                <app-icon [name]="micMuted() ? 'mic-off' : 'mic'" [size]="20" />
+              </button>
+
+              @if (room.roomType === 'VideoEnabled') {
+                <button
+                  class="av-btn"
+                  [class.muted-btn]="camOff()"
+                  type="button"
+                  (click)="toggleCam()"
+                  [attr.aria-label]="camOff() ? 'Turn camera on' : 'Turn camera off'"
+                  [attr.aria-pressed]="camOff()"
+                >
+                  <app-icon [name]="camOff() ? 'camera-off' : 'camera'" [size]="20" />
+                </button>
+              }
+
+              @if (!avConnected()) {
+                <button class="btn btn-primary av-join" type="button" (click)="joinAv()">
+                  Join
+                </button>
+              } @else {
+                <button class="btn btn-danger av-leave" type="button" (click)="leaveAv()">
+                  Leave
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+        <div class="thread" #thread>
+          @for (msg of messages(); track msg.id) {
+            <div class="msg" [class.mine]="isMine(msg)">
+              @if (!isMine(msg)) {
+                <app-avatar [name]="msg.senderDisplayName" [size]="32" />
+              }
+              <div class="bubble" [class.deleted]="msg.isDeleted">
+                @if (!isMine(msg)) {
+                  <span class="sender">{{ msg.senderDisplayName }}</span>
+                }
+                <p>{{ msg.isDeleted ? '[deleted]' : msg.content }}</p>
+                @if (!msg.isDeleted && (isMine(msg) || isHost())) {
+                  <div class="bubble-actions">
+                    <button class="link-action danger" type="button" (click)="deleteMsg(msg)">Delete</button>
+                  </div>
+                }
+                <span class="time muted">{{ time(msg.sentAt) }}</span>
+              </div>
+            </div>
+          }
+          @if (!messages().length && status() !== 'loading') {
+            <div class="chat-empty">
+              <app-icon name="messages" [size]="24" />
+              <p class="muted">No messages yet. Say something!</p>
+            </div>
+          }
+        </div>
+
+        <form class="composer" [formGroup]="form" (ngSubmit)="send()">
+          <input
+            type="text"
+            formControlName="content"
+            placeholder="Type a message…"
+            (input)="onInput($event)"
+            autocomplete="off"
+            maxlength="1000"
+          />
+          <button class="btn btn-primary" type="submit" [disabled]="!form.controls.content.value.trim()">Send</button>
+        </form>
+      </div>
+    </div>
+  }
+
+  @if (showManage() && current(); as room) {
+    <div class="modal-backdrop" (click)="showManage.set(false)">
+      <div
+        class="modal card"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Manage room"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="modal-head">
+          <h2>Manage room</h2>
+          <button class="modal-close" type="button" (click)="showManage.set(false)" aria-label="Close">×</button>
+        </header>
+
+        <form class="modal-body" [formGroup]="manageForm" (ngSubmit)="submitManage()">
+          <label class="field">
+            <span>Title</span>
+            <input type="text" formControlName="title" />
+          </label>
+          <label class="field">
+            <span>Description</span>
+            <input type="text" formControlName="description" placeholder="Optional" />
+          </label>
+          <label class="field">
+            <span>Max people</span>
+            <input type="number" formControlName="maxParticipants" min="2" max="50" />
+          </label>
+          <button class="btn btn-primary" type="submit" [disabled]="manageForm.invalid">Save changes</button>
+        </form>
+
+        <section class="modal-body participants-manage">
+          <h3>Participants</h3>
+          <ul>
+            @for (p of room.participants; track p.userId) {
+              <li>
+                <app-avatar [name]="p.displayName" [src]="p.avatarUrl" [size]="28" />
+                <span class="pm-name">
+                  {{ p.displayName }}
+                  @if (p.userId === room.hostId) {
+                    <span class="pm-host">Host</span>
+                  }
+                </span>
+                @if (p.userId !== room.hostId) {
+                  <span class="pm-actions">
+                    <button class="btn btn-secondary btn-sm" type="button" (click)="makeHost(p.userId)">Make host</button>
+                    <button class="btn btn-danger btn-sm" type="button" (click)="kickUser(p.userId)">Remove</button>
+                  </span>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+
+        <footer class="modal-foot">
+          <button class="btn btn-danger" type="button" (click)="endRoom()">
+            <app-icon name="trash" [size]="16" /> End room
+          </button>
+        </footer>
+      </div>
+    </div>
+  }
+</div>

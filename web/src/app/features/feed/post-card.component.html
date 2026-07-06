@@ -1,0 +1,187 @@
+<article class="post card">
+  <header class="post-head">
+    <app-avatar
+      [name]="author()?.displayName ?? ''"
+      [src]="author()?.avatarUrl ?? null"
+      [online]="author()?.isOnline ?? false"
+      [presence]="true"
+      [size]="40"
+    />
+    <div class="post-meta">
+      <span class="author">{{ author()?.displayName ?? '…' }}</span>
+      <span class="muted sub" [title]="post().createdAt">{{ time() }}</span>
+    </div>
+    @if (post().languageCode) {
+      <app-lang-chip [code]="post().languageCode" />
+    }
+    <button class="btn btn-ghost btn-report" type="button" (click)="showReport.set(true)" aria-label="Report post">
+      <app-icon name="flag" [size]="16" />
+    </button>
+    @if (isMine()) {
+      <button class="btn btn-ghost btn-report" type="button" (click)="startEditPost()" aria-label="Edit post">
+        <app-icon name="edit" [size]="16" />
+      </button>
+      <button class="btn btn-ghost btn-report" type="button" (click)="deletePost()" aria-label="Delete post">
+        <app-icon name="trash" [size]="16" />
+      </button>
+    }
+  </header>
+
+  @if (editingPost()) {
+    <form class="post-edit" [formGroup]="editForm" (ngSubmit)="saveEditPost()">
+      <textarea
+        class="post-edit-input"
+        formControlName="content"
+        rows="3"
+        maxlength="1000"
+        (input)="onEditPostInput($event)"
+        placeholder="Edit your post…"
+      ></textarea>
+      <label class="post-edit-lang">
+        <select formControlName="languageCode">
+          <option value="">Any language</option>
+          @for (l of languages; track l.code) {
+            <option [value]="l.code">{{ l.name }}</option>
+          }
+        </select>
+      </label>
+      <div class="post-edit-actions">
+        <button class="btn btn-secondary btn-sm" type="button" (click)="cancelEditPost()">Cancel</button>
+        <button class="btn btn-primary btn-sm" type="submit" [disabled]="editForm.invalid">Save</button>
+      </div>
+    </form>
+  } @else {
+    <p class="post-body">{{ post().content }}</p>
+  }
+
+  @if (post().tags.length) {
+    <div class="tags">
+      @for (t of post().tags; track t) {
+        <span class="tag">#{{ t }}</span>
+      }
+    </div>
+  }
+
+  <footer class="post-actions">
+    <!-- Reaction button with picker popover -->
+    <div class="reaction-wrap" (mouseleave)="showPicker.set(false)">
+      <button
+        class="action"
+        [class.active]="!!myReaction()"
+        type="button"
+        (click)="react(myReaction() !== null ? myReaction()! : 'Like')"
+        (mouseenter)="showPicker.set(true)"
+        [attr.aria-pressed]="!!myReaction()"
+        aria-label="React to post"
+      >
+        <span class="reaction-icon" [class.liked]="myReaction() === 'Like'" [class.bounce]="justReacted()">
+          {{ reactionEmoji(myReaction()) }}
+        </span>
+        <span>{{ post().likeCount }}</span>
+      </button>
+
+      @if (showPicker()) {
+        <div class="reaction-picker" role="toolbar" aria-label="Choose a reaction">
+          @for (r of reactions; track r.type) {
+            <button
+              class="reaction-option"
+              [class.chosen]="myReaction() === r.type"
+              type="button"
+              (click)="react(r.type)"
+              [title]="r.type"
+              [attr.aria-label]="r.type"
+            >
+              {{ r.emoji }}
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <button class="action" type="button" (click)="toggleComments()" [attr.aria-expanded]="showComments()">
+      <app-icon name="messages" [size]="18" />
+      <span>{{ post().commentCount }}</span>
+    </button>
+  </footer>
+
+  @if (showComments()) {
+    <section class="comments" aria-label="Comments">
+      @if (loadingComments()) {
+        <div class="sk-comments">
+          @for (i of [1,2]; track i) {
+            <div class="sk-comment-row">
+              <span class="sk-c-avatar"></span>
+              <div class="sk-c-lines">
+                <span class="sk-line short"></span>
+                <span class="sk-line med"></span>
+              </div>
+            </div>
+          }
+        </div>
+      }
+      @for (c of comments(); track c.id) {
+        <div class="comment" [class.reply]="!!c.parentCommentId">
+          <app-avatar [name]="users.user(c.authorId)?.displayName ?? ''" [size]="28" />
+          <div class="comment-body">
+            <span class="author sm">{{ users.user(c.authorId)?.displayName ?? '…' }}</span>
+            @if (editingCommentId() === c.id) {
+              <form class="add-comment edit" (ngSubmit)="saveEditComment(c.id)">
+                <input
+                  type="text"
+                  [value]="editCommentText()"
+                  (input)="onEditCommentInput($event)"
+                  maxlength="500"
+                />
+                <button class="btn btn-primary btn-sm" type="submit" [disabled]="!editCommentText().trim()">Save</button>
+                <button class="link-action" type="button" (click)="cancelEditComment()">Cancel</button>
+              </form>
+            } @else {
+              <p>{{ c.content }}</p>
+            }
+            <div class="comment-actions">
+              <button class="link-action" type="button" (click)="toggleReply(c.id)">Reply</button>
+              @if (isCommentMine(c.authorId)) {
+                <button class="link-action" type="button" (click)="startEditComment(c)">Edit</button>
+                <button class="link-action danger" type="button" (click)="deleteComment(c.id)">Delete</button>
+              }
+            </div>
+            @if (replyTo() === c.id) {
+              <form class="add-comment reply" (ngSubmit)="sendReply(c.id)">
+                <input
+                  type="text"
+                  [value]="replyText()"
+                  (input)="onReplyInput($event)"
+                  placeholder="Write a reply…"
+                  maxlength="500"
+                />
+                <button class="btn btn-primary" type="submit" [disabled]="!replyText().trim()">Reply</button>
+              </form>
+            }
+          </div>
+        </div>
+      }
+      <form class="add-comment" (ngSubmit)="sendComment()">
+        <input
+          type="text"
+          [value]="commentText()"
+          (input)="onCommentInput($event)"
+          placeholder="Add a kind reply…"
+          [disabled]="sending()"
+          maxlength="500"
+        />
+        <button class="btn btn-primary" type="submit" [disabled]="sending() || !commentText().trim()">
+          Reply
+        </button>
+      </form>
+    </section>
+  }
+
+  @if (showReport()) {
+    <app-report-dialog
+      targetType="Post"
+      [targetId]="post().id.toString()"
+      targetLabel="this post"
+      (closed)="showReport.set(false)"
+    />
+  }
+</article>
