@@ -1,0 +1,209 @@
+<div class="profile-wrap">
+  @if (status() === 'loading' && !profile()) {
+    <div class="sk-profile">
+      <div class="sk-head-row">
+        <span class="sk-avatar"></span>
+        <div class="sk-lines">
+          <span class="sk-line long"></span>
+          <span class="sk-line med"></span>
+        </div>
+      </div>
+      <span class="sk-line full"></span>
+    </div>
+  } @else if (status() === 'error' && !profile()) {
+    <div class="card state">
+      <p>Could not load your profile.</p>
+      <button class="btn btn-secondary" type="button" (click)="store.load()">Try again</button>
+    </div>
+  } @else if (profile(); as p) {
+    <form class="head card" [formGroup]="form" (ngSubmit)="save()">
+      <div class="head-main">
+        <app-avatar [name]="p.displayName" [src]="p.avatarUrl" [online]="p.isOnline" [size]="88" />
+        <div class="identity">
+          @if (editing()) {
+            <label class="field">
+              <span>Display name</span>
+              <input type="text" formControlName="displayName" maxlength="64" />
+            </label>
+          } @else {
+            <h1>{{ p.displayName }}</h1>
+            <p class="status muted">
+              @if (p.isOnline) {
+                <span class="dot online"></span> Online
+              } @else {
+                <span class="dot offline"></span> Last seen {{ time(p.lastSeenAt) || 'a while ago' }}
+              }
+            </p>
+          }
+        </div>
+      </div>
+
+      @if (editing()) {
+        <div class="edit-fields">
+          <label class="field">
+            <span>Avatar URL</span>
+            <input type="text" formControlName="avatarUrl" placeholder="https://example.com/avatar.jpg" />
+          </label>
+          <label class="field bio-edit">
+            <span>Bio</span>
+            <textarea formControlName="bio" rows="3" maxlength="280" placeholder="A line about how you practise."></textarea>
+          </label>
+        </div>
+        <div class="actions">
+          <button class="btn btn-secondary" type="button" (click)="store.cancelEdit()">Cancel</button>
+          <button class="btn btn-primary" type="submit" [disabled]="saving()">
+            {{ saving() ? 'Saving…' : 'Save changes' }}
+          </button>
+        </div>
+      } @else {
+        @if (p.bio) {
+          <p class="bio">{{ p.bio }}</p>
+        }
+        <div class="actions">
+          <button class="btn btn-secondary" type="button" (click)="startEdit()">Edit profile</button>
+        </div>
+      }
+    </form>
+
+    <section class="stats">
+      <div class="stat">
+        <span class="num">{{ p.followingCount }}</span>
+        <span class="lbl">Following</span>
+      </div>
+      <div class="stat">
+        <span class="num">{{ p.followerCount }}</span>
+        <span class="lbl">Followers</span>
+      </div>
+      <div class="stat">
+        <span class="num">{{ p.friendCount }}</span>
+        <span class="lbl">Friends</span>
+      </div>
+    </section>
+
+    <!-- XP + Streak block -->
+    @if (xp()) {
+      <section class="xp-section card">
+        <div class="xp-header">
+          <div class="xp-level-info">
+            <span class="xp-level-badge">Level {{ level() }}</span>
+            <span class="muted">{{ xp()!.totalXp | number }} XP total</span>
+          </div>
+          <div class="streak-info" [class.streak-active]="xp()!.currentStreak > 0">
+            <app-icon name="flame" [size]="16" />
+            <span class="streak-count">{{ xp()!.currentStreak }}</span>
+            <span class="muted">day streak</span>
+          </div>
+        </div>
+        <div class="xp-bar-wrap">
+          <div
+            class="xp-track"
+            role="progressbar"
+            [attr.aria-valuenow]="xpProgress()"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            [attr.aria-label]="'XP progress: ' + xpProgress() + '% toward next level'"
+          >
+            <div class="xp-fill" [style.width.%]="xpProgress()"></div>
+          </div>
+          <div class="xp-bar-label">
+            <span class="muted">{{ xpInLevel() }} / {{ xpPerLevel }} XP</span>
+            <span class="muted">Next level: {{ xpPerLevel - xpInLevel() }} XP away</span>
+          </div>
+        </div>
+        @if (xp()!.longestStreak > 0) {
+          <p class="streak-best muted">Best streak: {{ xp()!.longestStreak }} days</p>
+        }
+      </section>
+    }
+
+    <!-- Badges -->
+    @if (badges().length) {
+      <section class="badges card">
+        <h2>Badges <span class="badge-count muted">({{ badges().length }})</span></h2>
+        <ul class="badges-grid">
+          @for (b of badges(); track b.badgeId) {
+            <li class="badge-item" [title]="b.description ?? b.name">
+              <div class="badge-icon">
+                @if (b.iconUrl) {
+                  <img [src]="b.iconUrl" [alt]="b.name" width="28" height="28" />
+                } @else {
+                  <app-icon name="sparkles" [size]="20" />
+                }
+              </div>
+              <span class="badge-name">{{ b.name }}</span>
+              <span class="badge-date muted">{{ time(b.earnedAt) }}</span>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    <section class="langs card">
+      <h2>Languages</h2>
+
+      <div class="lang-group">
+        <h3 class="lang-title">I speak</h3>
+        @if (nativeLanguages().length) {
+          <ul class="lang-list">
+            @for (l of nativeLanguages(); track l.id) {
+              <li class="lang-item">
+                <span class="lang-name">{{ langName(l.languageCode) }}</span>
+                <span class="lang-tag native">Native</span>
+                <button class="lang-remove" type="button" (click)="removeLang(l)" aria-label="Remove language">×</button>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="muted small">None added.</p>
+        }
+      </div>
+
+      <div class="lang-group">
+        <h3 class="lang-title">Practising</h3>
+        @if (learningLanguages().length) {
+          <ul class="lang-list">
+            @for (l of learningLanguages(); track l.id) {
+              <li class="lang-item">
+                <span class="lang-name">{{ langName(l.languageCode) }}</span>
+                <select
+                  class="lang-level-select"
+                  [value]="l.level ?? 'A1'"
+                  (change)="onLangLevelChange(l, $event)"
+                  aria-label="Proficiency level"
+                >
+                  @for (lv of levels; track lv) {
+                    <option [value]="lv">{{ lv }}</option>
+                  }
+                </select>
+                <button class="lang-remove" type="button" (click)="removeLang(l)" aria-label="Remove language">×</button>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="muted small">None added.</p>
+        }
+      </div>
+
+      <form class="lang-add" [formGroup]="langForm" (ngSubmit)="addLanguage()">
+        <select class="lang-add-code" formControlName="languageCode">
+          <option value="">Add a language…</option>
+          @for (l of languages; track l.code) {
+            <option [value]="l.code">{{ l.name }}</option>
+          }
+        </select>
+        <select class="lang-add-type" formControlName="type">
+          <option value="Learning">Learning</option>
+          <option value="Native">Native</option>
+        </select>
+        @if (langForm.controls.type.value === 'Learning') {
+          <select class="lang-add-level" formControlName="level">
+            @for (lv of levels; track lv) {
+              <option [value]="lv">{{ lv }}</option>
+            }
+          </select>
+        }
+        <button class="btn btn-primary btn-sm" type="submit" [disabled]="langForm.invalid">Add</button>
+      </form>
+    </section>
+  }
+</div>

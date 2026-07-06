@@ -1,0 +1,67 @@
+<div class="search-wrap">
+  <header class="page-head">
+    <div>
+      <h1>Search</h1>
+      @if (query()) {
+        <p class="muted">Results for "{{ query() }}"</p>
+      } @else {
+        <p class="muted">Find learners and posts.</p>
+      }
+    </div>
+  </header>
+
+  @if (query()) {
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" [class.active]="tab() === 'users'" (click)="setTab('users')">People</button>
+      <button class="tab" role="tab" [class.active]="tab() === 'posts'" (click)="setTab('posts')">Posts</button>
+    </div>
+  }
+
+  @if (status() === 'loading') {
+    <p class="muted state">Searching…</p>
+  } @else if (status() === 'error') {
+    <div class="card state">
+      <p>Could not run this search.</p>
+    </div>
+  } @else if (!query()) {
+    <div class="empty card">
+      <span class="empty-icon"><app-icon name="search" [size]="24" /></span>
+      <h3>Search LinguaSpace</h3>
+      <p class="muted">Enter a name or keywords above.</p>
+    </div>
+  } @else if (tab() === 'users') {
+    @if (!results().length) {
+      <div class="empty card">
+        <span class="empty-icon"><app-icon name="search" [size]="24" /></span>
+        <h3>No people found</h3>
+        <p class="muted">We couldn't find anyone matching "{{ query() }}".</p>
+      </div>
+    } @else {
+      <ul class="user-list">
+        @for (u of results(); track u.userId) {
+          <li class="user-row card">
+            <a class="user-main" [routerLink]="['/app/profile', u.userId]">
+              <app-avatar [name]="u.displayName" [src]="u.avatarUrl" [online]="u.isOnline" [size]="44" />
+              <span class="name">{{ u.displayName }}</span>
+            </a>
+            <a class="btn btn-secondary" [routerLink]="['/app/profile', u.userId]">View Profile</a>
+          </li>
+        }
+      </ul>
+    }
+  } @else {
+    @if (!postResults().length) {
+      <div class="empty card">
+        <span class="empty-icon"><app-icon name="search" [size]="24" /></span>
+        <h3>No posts found</h3>
+        <p class="muted">No posts match "{{ query() }}".</p>
+      </div>
+    } @else {
+      <div class="post-list">
+        @for (p of postResults(); track p.id) {
+          <app-post-card [post]="p" />
+        }
+      </div>
+    }
+  }
+</div>

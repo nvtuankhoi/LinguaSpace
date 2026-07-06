@@ -44,6 +44,14 @@ export class FeedApi {
     return this.http.get<CursorPagedResult<PostSummaryDto>>(`${this.base}/Feed/users/${userId}`, { params, withCredentials: true });
   }
 
+  searchPosts(query: string, opts: { page?: number; pageSize?: number } = {}) {
+    const params = new HttpParams()
+      .set('q', query)
+      .set('page', String(opts.page ?? 1))
+      .set('pageSize', String(opts.pageSize ?? 20));
+    return this.http.get<PaginatedResult<PostSummaryDto>>(`${this.base}/Feed/search`, { params, withCredentials: true });
+  }
+
   getComments(postId: number) {
     return this.http.get<PaginatedResult<CommentDto>>(`${this.base}/Feed/posts/${postId}/comments`, {
       withCredentials: true,
