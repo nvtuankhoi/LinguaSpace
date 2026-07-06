@@ -53,6 +53,7 @@ export class PresenceRealtimeService {
   private readonly onlineChange$ = new Subject<{ userId: string; online: boolean }>();
   private readonly notification$ = new Subject<NotificationDto>();
   private readonly directMessage$ = new Subject<DirectMessageDto>();
+  private readonly newPost$ = new Subject<{ postId: number; authorId: string }>();
 
   /** User ids currently reported online by PresenceHub (UserOnline/UserOffline). */
   private readonly _online = signal<ReadonlySet<string>>(new Set());
@@ -62,6 +63,8 @@ export class PresenceRealtimeService {
   readonly onNotification = this.notification$.asObservable();
   /** Live incoming DM push from PresenceHub's "NewDirectMessage" event. */
   readonly onDirectMessage = this.directMessage$.asObservable();
+  /** New post from a followed user (PostCreatedEventHandler fans "NewPost" to followers). */
+  readonly onNewPost = this.newPost$.asObservable();
 
   private hub: HubConnection | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
@@ -98,6 +101,8 @@ export class PresenceRealtimeService {
     hub.on('NewDirectMessage', (ev: DirectMessagePush) =>
       this.directMessage$.next({ ...ev, isRead: false, isDeleted: false, editedAt: null }),
     );
+    // New posts from followed users → live "following" feed.
+    hub.on('NewPost', (ev: { postId: number; authorId: string }) => this.newPost$.next(ev));
 
     try {
       await hub.start();

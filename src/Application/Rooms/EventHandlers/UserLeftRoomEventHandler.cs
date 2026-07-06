@@ -11,11 +11,16 @@ namespace LinguaSpace.Application.Rooms.EventHandlers;
 public class UserLeftRoomEventHandler : INotificationHandler<UserLeftRoomEvent>
 {
     private readonly IApplicationDbContext _context;
+    private readonly INotificationService _notificationService;
     private readonly TimeProvider _timeProvider;
 
-    public UserLeftRoomEventHandler(IApplicationDbContext context, TimeProvider timeProvider)
+    public UserLeftRoomEventHandler(
+        IApplicationDbContext context,
+        INotificationService notificationService,
+        TimeProvider timeProvider)
     {
         _context = context;
+        _notificationService = notificationService;
         _timeProvider = timeProvider;
     }
 
@@ -46,5 +51,12 @@ public class UserLeftRoomEventHandler : INotificationHandler<UserLeftRoomEvent>
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Fan out to everyone connected to the room so participant lists refresh.
+        await _notificationService.NotifyGroupAsync(
+            $"room-{notification.RoomId}",
+            "UserLeftRoom",
+            new { notification.RoomId, notification.UserId },
+            cancellationToken);
     }
 }

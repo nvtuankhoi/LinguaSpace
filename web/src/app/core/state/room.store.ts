@@ -53,6 +53,12 @@ export const RoomStore = signalStore(
     return {
       loadRooms,
 
+      /** Re-fetch the current room so the participant list/count stays live
+       *  on UserJoinedRoom/UserLeftRoom pushes. */
+      async refreshParticipants(): Promise<void> {
+        await refreshCurrent();
+      },
+
       async openRoom(id: number): Promise<void> {
         patchState(store, { status: 'loading', current: null, messages: [] });
         try {

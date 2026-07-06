@@ -95,6 +95,11 @@ export class RoomDetailComponent implements OnInit {
       this.scrollToBottom();
     });
 
+    // Live participant list: refresh the room when someone joins or leaves.
+    this.realtime.onParticipantChange.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      void this.store.refreshParticipants();
+    });
+
     // Attach LiveKit video tracks to their <video> elements whenever the tile set changes.
     effect(() => {
       const tiles = this.videoTiles();

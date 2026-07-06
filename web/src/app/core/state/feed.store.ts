@@ -126,6 +126,35 @@ export const FeedStore = signalStore(
         }
       },
 
+      /** Live: a followed user published a post. Fetch it and prepend to the
+       *  "following" feed so new posts appear without a manual reload. */
+      async prependNewPost(postId: number): Promise<void> {
+        if (store.tab() !== 'following') {
+          return;
+        }
+        if (store.items().some((p) => p.id === postId)) {
+          return; // already present (e.g. own post prepended optimistically on create)
+        }
+        try {
+          const post = await firstValueFrom(feedApi.getPost(postId));
+          const summary: PostSummaryDto = {
+            id: post.id,
+            authorId: post.authorId,
+            content: post.content,
+            postType: post.postType,
+            languageCode: post.languageCode,
+            metadata: post.metadata,
+            likeCount: post.likeCount,
+            commentCount: post.commentCount,
+            createdAt: post.createdAt,
+            tags: post.tags,
+          };
+          patchState(store, { items: [summary, ...store.items()] });
+        } catch {
+          /* ignore — post may not be visible to this user */
+        }
+      },
+
       async react(postId: number, type: ReactionType): Promise<void> {
         const my = store.myReactions();
         const current = my[postId];
