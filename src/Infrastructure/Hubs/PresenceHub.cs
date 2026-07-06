@@ -1,6 +1,7 @@
 using LinguaSpace.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 
 namespace LinguaSpace.Infrastructure.Hubs;
@@ -84,8 +85,11 @@ public class PresenceHub : Hub
 
     private async Task UpdateDbPresenceAsync(string userId, bool isOnline)
     {
-        Domain.Entities.UserProfile? profile = await _context.UserProfiles
-            .FindAsync(userId);
+        // UserProfile's primary key is the int BaseAuditableEntity.Id; the Identity
+        // user id lives on the separate UserId (string) property. FindAsync keys on
+        // the PK, so look up by UserId instead (same pattern as GetCurrentUserQuery).
+        UserProfile? profile = await _context.UserProfiles
+            .FirstOrDefaultAsync(p => p.UserId == userId, CancellationToken.None);
 
         if (profile is null)
         {
