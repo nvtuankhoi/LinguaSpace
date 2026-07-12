@@ -155,6 +155,41 @@ export const FeedStore = signalStore(
         }
       },
 
+      // ---- Live list updates (a post group the viewer joined sent an event) ----
+      // The feed list owns these post summaries, so realtime edits/deletes/
+      // reaction/comment-count changes patch `items` here (the post-detail page
+      // has its own live story via PostDetailComponent + PostCard.commentDelta).
+
+      /** Live: a post in the list was edited by its author. */
+      applyLivePostEdit(postId: number, content: string, languageCode: string | null): void {
+        patchState(store, {
+          items: store.items().map((p) =>
+            p.id === postId ? { ...p, content, languageCode: languageCode ?? p.languageCode } : p,
+          ),
+        });
+      },
+
+      /** Live: a post in the list was deleted by its author. */
+      applyLivePostDelete(postId: number): void {
+        patchState(store, { items: store.items().filter((p) => p.id !== postId) });
+      },
+
+      /** Live: absolute like-count change on a post (another viewer reacted). */
+      applyLivePostReaction(postId: number, likeCount: number): void {
+        patchState(store, {
+          items: store.items().map((p) => (p.id === postId ? { ...p, likeCount } : p)),
+        });
+      },
+
+      /** Live: a comment was added (+1) or deleted (-1) on a post in the list. */
+      applyLiveCommentDelta(postId: number, delta: number): void {
+        patchState(store, {
+          items: store.items().map((p) =>
+            p.id === postId ? { ...p, commentCount: Math.max(0, p.commentCount + delta) } : p,
+          ),
+        });
+      },
+
       async react(postId: number, type: ReactionType): Promise<void> {
         const my = store.myReactions();
         const current = my[postId];
