@@ -41,6 +41,12 @@ export interface RoomMessageDeletedEvent {
   messageId: number;
 }
 
+/** A participant joined or left the room's voice/video media session. */
+export interface RoomMediaEvent {
+  roomId: number;
+  userId: string;
+}
+
 const BOT_NAMES = ['Sora', 'Marco', 'Lena', 'Jin'];
 const BOT_LINES = [
   'Has anyone tried shadowing for pronunciation?',
@@ -77,6 +83,14 @@ export class RoomRealtimeService {
   /** Fires when a room message is deleted in the connected room. */
   readonly onMessageDeleted = this.messageDeleted$.asObservable();
 
+  private readonly mediaJoin$ = new Subject<RoomMediaEvent>();
+  /** Fires when a participant joins the room's voice/video session. */
+  readonly onMediaJoin = this.mediaJoin$.asObservable();
+
+  private readonly mediaLeave$ = new Subject<RoomMediaEvent>();
+  /** Fires when a participant leaves the room's voice/video session. */
+  readonly onMediaLeave = this.mediaLeave$.asObservable();
+
   private roomId: number | null = null;
   private botTimer: ReturnType<typeof setInterval> | null = null;
   private hub: HubConnection | null = null;
@@ -111,6 +125,10 @@ export class RoomRealtimeService {
     // Message deletions — applied locally so every participant's chat reflects
     // soft-deletes without a manual reload.
     this.hub.on('MessageDeleted', (ev: RoomMessageDeletedEvent) => this.messageDeleted$.next(ev));
+    // Media-session presence — who's in the voice/video call. Emitted server-side
+    // from the LiveKit webhook; lets non-AV participants see who's in the call.
+    this.hub.on('UserJoinedMedia', (ev: RoomMediaEvent) => this.mediaJoin$.next(ev));
+    this.hub.on('UserLeftMedia', (ev: RoomMediaEvent) => this.mediaLeave$.next(ev));
     await this.hub.start();
     await this.hub.invoke('JoinRoomGroup', roomId);
   }

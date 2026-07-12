@@ -91,6 +91,9 @@
                 <span class="av-dot"></span>
                 <span class="av-label muted">Not connected</span>
               }
+              @if (mediaParticipantIds().length > 0) {
+                <span class="av-count muted">· {{ mediaParticipantIds().length }} in call</span>
+              }
             </div>
 
             <div class="av-controls">
@@ -254,6 +257,9 @@
                   {{ p.displayName }}
                   @if (p.userId === room.hostId) {
                     <span class="pm-host">Host</span>
+                  }
+                  @if (isInCall(p.userId)) {
+                    <span class="pm-in-call">In call</span>
                   }
                   @if (p.isMuted) {
                     <span class="pm-muted">Muted</span>

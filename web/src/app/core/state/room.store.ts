@@ -7,6 +7,7 @@ import {
   CreateRoomRequest,
   MessageDto,
   RoomDto,
+  RoomMediaParticipantDto,
   RoomSummaryDto,
   UpdateRoomRequest,
 } from '../models';
@@ -18,10 +19,12 @@ interface RoomState {
   rooms: RoomSummaryDto[];
   current: RoomDto | null;
   messages: MessageDto[];
+  /** userIds currently in the room's voice/video media session. */
+  mediaParticipantIds: string[];
   status: Status;
 }
 
-const initialState: RoomState = { rooms: [], current: null, messages: [], status: 'idle' };
+const initialState: RoomState = { rooms: [], current: null, messages: [], mediaParticipantIds: [], status: 'idle' };
 
 export const RoomStore = signalStore(
   { providedIn: 'root' },
@@ -60,11 +63,22 @@ export const RoomStore = signalStore(
       },
 
       async openRoom(id: number): Promise<void> {
-        patchState(store, { status: 'loading', current: null, messages: [] });
+        patchState(store, { status: 'loading', current: null, messages: [], mediaParticipantIds: [] });
         try {
           const room = await firstValueFrom(roomsApi.getRoom(id));
           const messages = await firstValueFrom(roomsApi.getMessages(id));
-          patchState(store, { current: room, messages, status: 'idle' });
+          // Seed who's currently in the voice/video call so non-AV participants
+          // see the in-call set immediately, then keep it live via UserJoined/
+          // UserLeftMedia. Non-fatal: media presence is best-effort.
+          const media = await firstValueFrom(roomsApi.getMediaParticipants(id)).catch(
+            () => [] as RoomMediaParticipantDto[],
+          );
+          patchState(store, {
+            current: room,
+            messages,
+            mediaParticipantIds: media.map((m) => m.userId),
+            status: 'idle',
+          });
           await realtime.connect(id);
           // Register membership server-side (drives the participant list and
           // AwardXpForRoomJoin). Non-fatal: the room still opens if this fails.
@@ -125,7 +139,7 @@ export const RoomStore = signalStore(
         if (id != null) {
           await firstValueFrom(roomsApi.leave(id)).catch(() => undefined);
         }
-        patchState(store, { current: null, messages: [] });
+        patchState(store, { current: null, messages: [], mediaParticipantIds: [] });
       },
 
       async createRoom(req: CreateRoomRequest): Promise<number> {
@@ -152,7 +166,7 @@ export const RoomStore = signalStore(
         }
         await firstValueFrom(roomsApi.deleteRoom(id));
         await realtime.disconnect();
-        patchState(store, { current: null, messages: [] });
+        patchState(store, { current: null, messages: [], mediaParticipantIds: [] });
       },
 
       async transferHost(targetUserId: string): Promise<void> {
@@ -212,6 +226,21 @@ export const RoomStore = signalStore(
           messages: store.messages().map((m) =>
             m.id === messageId ? { ...m, isDeleted: true, content: '' } : m,
           ),
+        });
+      },
+
+      /** A participant joined the voice/video call (UserJoinedMedia). */
+      applyMediaJoin(userId: string): void {
+        if (store.mediaParticipantIds().includes(userId)) {
+          return;
+        }
+        patchState(store, { mediaParticipantIds: [...store.mediaParticipantIds(), userId] });
+      },
+
+      /** A participant left the voice/video call (UserLeftMedia). */
+      applyMediaLeave(userId: string): void {
+        patchState(store, {
+          mediaParticipantIds: store.mediaParticipantIds().filter((u) => u !== userId),
         });
       },
 

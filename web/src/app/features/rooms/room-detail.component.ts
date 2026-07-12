@@ -61,6 +61,7 @@ export class RoomDetailComponent implements OnInit {
   protected readonly current = this.store.current;
   protected readonly messages = this.store.messages;
   protected readonly status = this.store.status;
+  protected readonly mediaParticipantIds = this.store.mediaParticipantIds;
 
   /** True when the current user is this room's host (drives host controls). */
   protected readonly isHost = computed(() => {
@@ -125,6 +126,15 @@ export class RoomDetailComponent implements OnInit {
       this.store.applyMessageDeleted(ev.messageId);
     });
 
+    // Live media presence: track who's in the voice/video call so non-AV
+    // participants and the manage list reflect join/leave without a refetch.
+    this.realtime.onMediaJoin.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((ev) => {
+      this.store.applyMediaJoin(ev.userId);
+    });
+    this.realtime.onMediaLeave.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((ev) => {
+      this.store.applyMediaLeave(ev.userId);
+    });
+
     // Attach LiveKit video tracks to their <video> elements whenever the tile set changes.
     effect(() => {
       const tiles = this.videoTiles();
@@ -151,6 +161,10 @@ export class RoomDetailComponent implements OnInit {
 
   protected isMine(message: MessageDto): boolean {
     return message.senderId === this.auth.user()?.userId;
+  }
+
+  protected isInCall(userId: string): boolean {
+    return this.mediaParticipantIds().includes(userId);
   }
 
   protected time(iso: string): string {

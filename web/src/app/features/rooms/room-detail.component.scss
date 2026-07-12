@@ -204,6 +204,7 @@
   .av-dot.connected { animation: none; }
 }
 .av-label { font-size: var(--ls-text-sm); }
+.av-count { font-size: var(--ls-text-sm); }
 
 .av-controls {
   display: flex;
@@ -367,6 +368,16 @@
   font-weight: var(--ls-weight-bold);
   color: var(--ls-on-accent);
   background: var(--ls-warning);
+  padding: 1px 6px;
+  border-radius: var(--ls-radius-pill);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.pm-in-call {
+  font-size: 10px;
+  font-weight: var(--ls-weight-bold);
+  color: var(--ls-on-accent);
+  background: var(--ls-success);
   padding: 1px 6px;
   border-radius: var(--ls-radius-pill);
   text-transform: uppercase;
