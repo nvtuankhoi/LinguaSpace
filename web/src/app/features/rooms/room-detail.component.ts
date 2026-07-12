@@ -28,7 +28,7 @@ import { relativeTime } from '../../core/util/time';
 import { AvatarComponent } from '../../shared/ui/avatar/avatar.component';
 import { IconComponent } from '../../shared/ui/icon/icon.component';
 import { LanguageChipComponent } from '../../shared/ui/language-chip/language-chip.component';
-import { MessageDto, RoomType, UpdateRoomRequest, UserSummaryDto } from '../../core/models';
+import { MessageDto, RoomParticipantDto, RoomType, UpdateRoomRequest, UserSummaryDto } from '../../core/models';
 
 interface MediaTile {
   identity: string;
@@ -317,11 +317,15 @@ export class RoomDetailComponent implements OnInit {
     await this.store.kickParticipant(userId);
   }
 
-  protected async muteUser(userId: string): Promise<void> {
-    if (!confirm("Mute this participant's microphone?")) {
+  protected async toggleMute(p: RoomParticipantDto): Promise<void> {
+    const willMute = !p.isMuted;
+    const msg = willMute
+      ? 'Mute this participant in chat? They will not be able to send messages.'
+      : 'Allow this participant to send messages again?';
+    if (!confirm(msg)) {
       return;
     }
-    await this.store.muteParticipant(userId, true);
+    await this.store.muteParticipant(p.userId, willMute);
   }
 
   // ---- Host: invite by search ----

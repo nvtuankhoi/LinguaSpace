@@ -245,10 +245,15 @@
                   @if (p.userId === room.hostId) {
                     <span class="pm-host">Host</span>
                   }
+                  @if (p.isMuted) {
+                    <span class="pm-muted">Muted</span>
+                  }
                 </span>
                 @if (p.userId !== room.hostId) {
                   <span class="pm-actions">
-                    <button class="btn btn-secondary btn-sm" type="button" (click)="muteUser(p.userId)">Mute</button>
+                    <button class="btn btn-secondary btn-sm" type="button" (click)="toggleMute(p)">
+                      {{ p.isMuted ? 'Unmute' : 'Mute' }}
+                    </button>
                     <button class="btn btn-secondary btn-sm" type="button" (click)="makeHost(p.userId)">Make host</button>
                     <button class="btn btn-danger btn-sm" type="button" (click)="kickUser(p.userId)">Remove</button>
                   </span>

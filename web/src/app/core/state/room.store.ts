@@ -173,13 +173,21 @@ export const RoomStore = signalStore(
         await refreshCurrent();
       },
 
-      /** Force-mute a participant's microphone (host moderation). */
+      /** Toggle a participant's text-chat mute (host moderation). */
       async muteParticipant(targetUserId: string, mute: boolean): Promise<void> {
-        const id = store.current()?.id;
-        if (id == null) {
+        const room = store.current();
+        if (!room) {
           return;
         }
-        await firstValueFrom(roomsApi.mute(id, targetUserId, { mute }));
+        await firstValueFrom(roomsApi.mute(room.id, targetUserId, { mute }));
+        patchState(store, {
+          current: {
+            ...room,
+            participants: room.participants.map((p) =>
+              p.userId === targetUserId ? { ...p, isMuted: mute } : p,
+            ),
+          },
+        });
       },
 
       /** Send a room invite to a user who isn't in the room yet. */
