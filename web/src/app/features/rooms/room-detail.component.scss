@@ -233,6 +233,10 @@
 
 .av-join, .av-leave { font-size: var(--ls-text-sm); padding: 8px 14px; }
 
+// Host-only "end the call for everyone" — pushed to the right edge of the
+// controls group to separate the room-wide action from personal Join/Leave.
+.av-end { margin-left: auto; font-size: var(--ls-text-sm); padding: 8px 14px; display: inline-flex; align-items: center; gap: 6px; }
+
 // ---- Chat thread ----
 .thread {
   flex: 1;

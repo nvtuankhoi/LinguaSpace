@@ -244,6 +244,31 @@ export const RoomStore = signalStore(
         });
       },
 
+      /**
+       * Host-only: end the room's voice/video session for everyone. The backend
+       * terminates the LiveKit room (disconnecting all participants) and returns
+       * 204, or 403 if the caller isn't the host. Reconcile the in-call set via
+       * the status endpoint: LeftAt is set asynchronously by LiveKit webhooks,
+       * so status may briefly still report active — in that case leave the set
+       * for realtime (UserLeftMedia) to reconcile rather than flashing to zero.
+       */
+      async endCall(): Promise<void> {
+        const id = store.current()?.id;
+        if (id == null) {
+          return;
+        }
+        await firstValueFrom(roomsApi.endMediaSession(id));
+        try {
+          const status = await firstValueFrom(roomsApi.getMediaStatus(id));
+          if (!status.isActive) {
+            patchState(store, { mediaParticipantIds: [] });
+          }
+        } catch {
+          // Status query failed (e.g. 404) — the session is gone; clear locally.
+          patchState(store, { mediaParticipantIds: [] });
+        }
+      },
+
       /** Send a room invite to a user who isn't in the room yet. */
       async invite(targetUserId: string): Promise<void> {
         const id = store.current()?.id;

@@ -4,6 +4,7 @@ import { inject, Injectable } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import {
   CreateRoomRequest,
+  MediaSessionStatusDto,
   MediaTokenDto,
   MessageDto,
   MuteRequest,
@@ -99,5 +100,17 @@ export class RoomsApi {
     return this.http.get<RoomMediaParticipantDto[]>(`${this.base}/Rooms/${roomId}/media/participants`, {
       withCredentials: true,
     });
+  }
+
+  /** Whether the room's voice/video session is active + how many are in it. GET /Rooms/{roomId}/media/status. */
+  getMediaStatus(roomId: number) {
+    return this.http.get<MediaSessionStatusDto>(`${this.base}/Rooms/${roomId}/media/status`, {
+      withCredentials: true,
+    });
+  }
+
+  /** Host-only: terminate the LiveKit room, disconnecting everyone. DELETE /Rooms/{roomId}/media → 204. */
+  endMediaSession(roomId: number) {
+    return this.http.delete(`${this.base}/Rooms/${roomId}/media`, { withCredentials: true });
   }
 }

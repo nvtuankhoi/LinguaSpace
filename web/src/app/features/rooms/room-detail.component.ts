@@ -225,6 +225,17 @@ export class RoomDetailComponent implements OnInit {
       lk.on(RoomEvent.TrackUnsubscribed, () => this.syncTiles());
       lk.on(RoomEvent.LocalTrackPublished, () => this.syncTiles());
       lk.on(RoomEvent.LocalTrackUnpublished, () => this.syncTiles());
+      // Involuntary disconnect (host ended the call, network loss, server kick).
+      // Voluntary disconnects removeAllListeners() first, so this only fires
+      // when we didn't initiate it — reset the AV UI so it reflects the ended
+      // call instead of hanging on a stale "Live" state.
+      lk.on(RoomEvent.Disconnected, () => {
+        this.lkRoom = null;
+        this.avConnected.set(false);
+        this.micMuted.set(false);
+        this.camOff.set(false);
+        this.videoTiles.set([]);
+      });
 
       this.lkRoom = lk;
       this.syncTiles();
@@ -244,6 +255,23 @@ export class RoomDetailComponent implements OnInit {
     this.avConnected.set(false);
     this.micMuted.set(false);
     this.camOff.set(false);
+  }
+
+  /**
+   * Host-only: end the voice/video session for everyone. The backend terminates
+   * the LiveKit room, disconnecting all participants. Distinct from leaveAv()
+   * (just me leaves) and endRoom() (deletes the whole room).
+   */
+  protected async endCall(): Promise<void> {
+    if (!confirm('End the call for everyone? All participants will be disconnected.')) {
+      return;
+    }
+    try {
+      await this.store.endCall();
+    } finally {
+      // The host is disconnected from the LiveKit room too — clean up locally.
+      await this.leaveAv();
+    }
   }
 
   private async disconnectLiveKit(): Promise<void> {
