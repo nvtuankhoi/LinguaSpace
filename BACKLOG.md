@@ -14,6 +14,7 @@ Legend: **S** = nhỏ (<~1h), **M** = vừa, **L** = lớn. Endpoint prefix `/ap
 - **Realtime** (`7ffe373`): participant list room cập nhật live (join/leave); following-feed hiện post mới live. Backend đã rebuild + deploy.
 - **Languages CRUD + Post search** (`46d7a3d`): thêm/sửa level/xóa language ở profile; search có tab People/Posts.
 - **Moderation admin console** (`dff3ee6`): console `/app/admin` (role `Administrator`) — list/filter reports, resolve/dismiss, ban user; `adminGuard` + nav entry. Track thêm `app.routes`/`auth.guard`/`shell`.
+- **Quick wins** (`aabfb2e`): hủy friend request (tab Sent), tab Blocked + unblock, host mute + invite-by-search, trang post detail `/app/post/:id` (permalink ở timestamp). Fix latent bug: outgoing requests giờ filter đúng.
 
 ---
 
@@ -30,12 +31,12 @@ Backend đầy đủ (`src/Web/Endpoints/Moderation.cs`, role `Administrator`). 
 
 ---
 
-## 🟡 B. API có sẵn, thiếu UI (quick wins)
+## ✅ B. Quick wins — DONE (`aabfb2e`)
 
-- [ ] **Host controls** (M): `invite` (`POST /Rooms/{id}/invite/{userId}`), `mute` (`POST /Rooms/{id}/mute/{userId}`) — `rooms.api` đã có method, `room-detail` chưa có nút. *(Lưu ý: `kick` đã có UI ở host modal.)*
-- [ ] **Hủy friend request** (S): `DELETE /Users/friend-requests/{id}` — api có, chưa có nút hủy lời mời đang chờ.
-- [ ] **Trang Block list** (S): `GET /Users/me/blocked` — api có, chưa có trang quản lý user đã block.
-- [ ] **Post detail page** (M): `GET /Feed/posts/{id}` (`getPost`) — api có, chưa có trang riêng (đang xem trong feed).
+- [x] **Host controls**: `mute` (nút per-participant trong host modal) + `invite` (invite-by-search trong modal, ẩn user đã trong room). *(Kick đã có từ trước.)*
+- [x] **Hủy friend request**: tab Requests giờ chia Incoming/Sent; Sent có nút Cancel.
+- [x] **Trang Block list**: tab Blocked trong Network + nút Unblock.
+- [x] **Post detail page**: `/app/post/:id` (dùng `getPost`), reuse `PostCardComponent` với `expanded`, permalink ở timestamp.
 
 ---
 
