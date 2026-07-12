@@ -112,6 +112,24 @@ export const MessageStore = signalStore(
         }
       },
 
+      /** Applies a live DM edit pushed to the other participant (PresenceHub). */
+      applyEdited(messageId: number, content: string, editedAt: string): void {
+        patchState(store, {
+          messages: store.messages().map((m) =>
+            m.id === messageId ? { ...m, content, editedAt } : m,
+          ),
+        });
+      },
+
+      /** Applies a live DM deletion pushed to the other participant (PresenceHub). */
+      applyDeleted(messageId: number): void {
+        patchState(store, {
+          messages: store.messages().map((m) =>
+            m.id === messageId ? { ...m, isDeleted: true, content: '[deleted]' } : m,
+          ),
+        });
+      },
+
       /**
        * Handles a live incoming DM pushed by PresenceHub's "NewDirectMessage".
        * - Open conversation: append to the thread (ascending) and re-mark read so

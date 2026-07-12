@@ -100,6 +100,22 @@ export class MessageThreadComponent implements OnInit, AfterViewChecked {
       this.afterLiveMessage();
     });
 
+    // Live DM edits/deletes from the other participant — only relevant to this thread.
+    this.presence.onDmEdited.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((ev) => {
+      if (ev.conversationId !== Number(this.id())) {
+        return;
+      }
+      this.store.applyEdited(ev.id, ev.content, ev.editedAt);
+      this.cdr.markForCheck();
+    });
+    this.presence.onDmDeleted.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((ev) => {
+      if (ev.conversationId !== Number(this.id())) {
+        return;
+      }
+      this.store.applyDeleted(ev.id);
+      this.cdr.markForCheck();
+    });
+
     this.destroyRef.onDestroy(() => void this.store.closeConversation());
   }
 

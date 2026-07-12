@@ -1,5 +1,6 @@
 using LinguaSpace.Application.Common.Interfaces;
 using LinguaSpace.Application.Common.Security;
+using LinguaSpace.Domain.Events;
 
 namespace LinguaSpace.Application.Rooms.Commands.DeleteMessage;
 
@@ -37,6 +38,9 @@ public class DeleteMessageCommandHandler : IRequestHandler<DeleteMessageCommand>
         // Soft delete: preserve message in chat history with [deleted] placeholder
         message.IsDeleted = true;
         message.Content = string.Empty;
+
+        // Fan out the deletion to everyone in the room so their chat updates live.
+        message.AddDomainEvent(new RoomMessageDeletedEvent(message.Room.Id, message.Id));
 
         await _context.SaveChangesAsync(cancellationToken);
     }

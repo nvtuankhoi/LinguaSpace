@@ -206,6 +206,15 @@ export const RoomStore = signalStore(
         });
       },
 
+      /** Apply a room-message deletion pushed from the server (realtime). */
+      applyMessageDeleted(messageId: number): void {
+        patchState(store, {
+          messages: store.messages().map((m) =>
+            m.id === messageId ? { ...m, isDeleted: true, content: '' } : m,
+          ),
+        });
+      },
+
       /** Send a room invite to a user who isn't in the room yet. */
       async invite(targetUserId: string): Promise<void> {
         const id = store.current()?.id;

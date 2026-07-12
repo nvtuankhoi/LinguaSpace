@@ -120,6 +120,11 @@ export class RoomDetailComponent implements OnInit {
       this.store.applyMute(ev.userId, ev.isMuted);
     });
 
+    // Live message deletions: reflect other participants' deletes in the thread.
+    this.realtime.onMessageDeleted.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((ev) => {
+      this.store.applyMessageDeleted(ev.messageId);
+    });
+
     // Attach LiveKit video tracks to their <video> elements whenever the tile set changes.
     effect(() => {
       const tiles = this.videoTiles();

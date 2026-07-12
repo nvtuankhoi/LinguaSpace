@@ -34,6 +34,20 @@ interface DirectMessagePush {
   sentAt: string;
 }
 
+/** Payload pushed by PresenceHub's "DirectMessageEdited" (other participant edited a DM). */
+interface DirectMessageEditedPush {
+  id: number;
+  conversationId: number;
+  content: string;
+  editedAt: string;
+}
+
+/** Payload pushed by PresenceHub's "DirectMessageDeleted" (other participant deleted a DM). */
+interface DirectMessageDeletedPush {
+  id: number;
+  conversationId: number;
+}
+
 /** Renews the Redis presence TTL (PresenceHub sets it to 10 min). */
 const HEARTBEAT_INTERVAL_MS = 3 * 60 * 1000;
 
@@ -53,6 +67,8 @@ export class PresenceRealtimeService {
   private readonly onlineChange$ = new Subject<{ userId: string; online: boolean }>();
   private readonly notification$ = new Subject<NotificationDto>();
   private readonly directMessage$ = new Subject<DirectMessageDto>();
+  private readonly dmEdited$ = new Subject<DirectMessageEditedPush>();
+  private readonly dmDeleted$ = new Subject<DirectMessageDeletedPush>();
   private readonly newPost$ = new Subject<{ postId: number; authorId: string }>();
 
   /** User ids currently reported online by PresenceHub (UserOnline/UserOffline). */
@@ -63,6 +79,10 @@ export class PresenceRealtimeService {
   readonly onNotification = this.notification$.asObservable();
   /** Live incoming DM push from PresenceHub's "NewDirectMessage" event. */
   readonly onDirectMessage = this.directMessage$.asObservable();
+  /** A DM was edited by the other participant (PresenceHub "DirectMessageEdited"). */
+  readonly onDmEdited = this.dmEdited$.asObservable();
+  /** A DM was deleted by the other participant (PresenceHub "DirectMessageDeleted"). */
+  readonly onDmDeleted = this.dmDeleted$.asObservable();
   /** New post from a followed user (PostCreatedEventHandler fans "NewPost" to followers). */
   readonly onNewPost = this.newPost$.asObservable();
 
@@ -101,6 +121,8 @@ export class PresenceRealtimeService {
     hub.on('NewDirectMessage', (ev: DirectMessagePush) =>
       this.directMessage$.next({ ...ev, isRead: false, isDeleted: false, editedAt: null }),
     );
+    hub.on('DirectMessageEdited', (ev: DirectMessageEditedPush) => this.dmEdited$.next(ev));
+    hub.on('DirectMessageDeleted', (ev: DirectMessageDeletedPush) => this.dmDeleted$.next(ev));
     // New posts from followed users → live "following" feed.
     hub.on('NewPost', (ev: { postId: number; authorId: string }) => this.newPost$.next(ev));
 

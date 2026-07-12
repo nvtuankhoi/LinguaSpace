@@ -35,6 +35,12 @@ export interface RoomMuteEvent {
   isMuted: boolean;
 }
 
+/** A room message was deleted (MessageDeleted). */
+export interface RoomMessageDeletedEvent {
+  roomId: number;
+  messageId: number;
+}
+
 const BOT_NAMES = ['Sora', 'Marco', 'Lena', 'Jin'];
 const BOT_LINES = [
   'Has anyone tried shadowing for pronunciation?',
@@ -67,6 +73,10 @@ export class RoomRealtimeService {
   /** Fires when a participant's mute state changes in the connected room. */
   readonly onMuteChange = this.muteChange$.asObservable();
 
+  private readonly messageDeleted$ = new Subject<RoomMessageDeletedEvent>();
+  /** Fires when a room message is deleted in the connected room. */
+  readonly onMessageDeleted = this.messageDeleted$.asObservable();
+
   private roomId: number | null = null;
   private botTimer: ReturnType<typeof setInterval> | null = null;
   private hub: HubConnection | null = null;
@@ -98,6 +108,9 @@ export class RoomRealtimeService {
     // Participant mute changes — applied locally so the host's toggle and the
     // affected user's composer both react without a full room refetch.
     this.hub.on('ParticipantMuted', (ev: RoomMuteEvent) => this.muteChange$.next(ev));
+    // Message deletions — applied locally so every participant's chat reflects
+    // soft-deletes without a manual reload.
+    this.hub.on('MessageDeleted', (ev: RoomMessageDeletedEvent) => this.messageDeleted$.next(ev));
     await this.hub.start();
     await this.hub.invoke('JoinRoomGroup', roomId);
   }
