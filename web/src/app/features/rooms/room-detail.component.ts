@@ -23,11 +23,12 @@ import { AuthStore } from '../../core/auth/auth.store';
 import { RoomStore } from '../../core/state/room.store';
 import { RoomRealtimeService } from '../../core/state/room-realtime.service';
 import { RoomsApi } from '../../core/api/rooms.api';
+import { UsersApi } from '../../core/api/users.api';
 import { relativeTime } from '../../core/util/time';
 import { AvatarComponent } from '../../shared/ui/avatar/avatar.component';
 import { IconComponent } from '../../shared/ui/icon/icon.component';
 import { LanguageChipComponent } from '../../shared/ui/language-chip/language-chip.component';
-import { MessageDto, RoomType, UpdateRoomRequest } from '../../core/models';
+import { MessageDto, RoomType, UpdateRoomRequest, UserSummaryDto } from '../../core/models';
 
 interface MediaTile {
   identity: string;
@@ -51,6 +52,7 @@ export class RoomDetailComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
   private readonly roomsApi = inject(RoomsApi);
+  private readonly usersApi = inject(UsersApi);
   private readonly router = inject(Router);
 
   /** Bound from the :id route param via withComponentInputBinding. */
@@ -313,6 +315,55 @@ export class RoomDetailComponent implements OnInit {
       return;
     }
     await this.store.kickParticipant(userId);
+  }
+
+  protected async muteUser(userId: string): Promise<void> {
+    if (!confirm("Mute this participant's microphone?")) {
+      return;
+    }
+    await this.store.muteParticipant(userId, true);
+  }
+
+  // ---- Host: invite by search ----
+
+  protected readonly inviteQuery = signal('');
+  protected readonly inviteResults = signal<UserSummaryDto[]>([]);
+  protected readonly inviteLoading = signal(false);
+  protected readonly invitedIds = signal<readonly string[]>([]);
+
+  protected onInviteInput(event: Event): void {
+    this.inviteQuery.set((event.target as HTMLInputElement).value);
+  }
+
+  protected async searchInvite(): Promise<void> {
+    const q = this.inviteQuery().trim();
+    if (q.length < 2) {
+      this.inviteResults.set([]);
+      return;
+    }
+    this.inviteLoading.set(true);
+    try {
+      const res = await firstValueFrom(this.usersApi.searchUsers(q, { pageSize: 5 }));
+      const present = new Set((this.current()?.participants ?? []).map((p) => p.userId));
+      this.inviteResults.set(res.items.filter((u) => !present.has(u.userId)));
+    } catch {
+      this.inviteResults.set([]);
+    } finally {
+      this.inviteLoading.set(false);
+    }
+  }
+
+  protected isInvited(userId: string): boolean {
+    return this.invitedIds().includes(userId);
+  }
+
+  protected async inviteUser(user: UserSummaryDto): Promise<void> {
+    try {
+      await this.store.invite(user.userId);
+      this.invitedIds.set([...this.invitedIds(), user.userId]);
+    } catch {
+      /* surfaced elsewhere */
+    }
   }
 
   protected async endRoom(): Promise<void> {

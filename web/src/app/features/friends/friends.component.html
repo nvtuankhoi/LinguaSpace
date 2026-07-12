@@ -1,0 +1,210 @@
+<div class="friends-wrap">
+  <header class="page-head">
+    <div>
+      <h1>Network</h1>
+      <p class="muted">Your friends and followers.</p>
+    </div>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button
+      class="tab"
+      [class.active]="tab() === 'friends'"
+      role="tab"
+      type="button"
+      (click)="setTab('friends')"
+    >
+      Friends ({{ store.friends().length }})
+    </button>
+    <button
+      class="tab"
+      [class.active]="tab() === 'followers'"
+      role="tab"
+      type="button"
+      (click)="setTab('followers')"
+    >
+      Followers ({{ store.followers().length }})
+    </button>
+    <button
+      class="tab"
+      [class.active]="tab() === 'following'"
+      role="tab"
+      type="button"
+      (click)="setTab('following')"
+    >
+      Following ({{ store.following().length }})
+    </button>
+    <button
+      class="tab"
+      [class.active]="tab() === 'requests'"
+      role="tab"
+      type="button"
+      (click)="setTab('requests')"
+    >
+      Requests @if (store.incomingRequests().length) {
+        <span class="badge">{{ store.incomingRequests().length }}</span>
+      }
+    </button>
+    <button
+      class="tab"
+      [class.active]="tab() === 'blocked'"
+      role="tab"
+      type="button"
+      (click)="setTab('blocked')"
+    >
+      Blocked
+    </button>
+  </div>
+
+  @if (store.status() === 'loading') {
+    <p class="muted state">Loading…</p>
+  } @else if (store.status() === 'error') {
+    <div class="card state">
+      <p>Could not load your network.</p>
+      <button class="btn btn-secondary" type="button" (click)="store.loadAll()">Try again</button>
+    </div>
+  } @else {
+    <div class="list">
+      @if (tab() === 'friends') {
+        @if (!store.friends().length) {
+          <div class="empty card">
+            <span class="empty-icon"><app-icon name="profile" [size]="24" /></span>
+            <h3>No friends yet</h3>
+            <p class="muted">Send friend requests to learners you connect with.</p>
+          </div>
+        } @else {
+          <ul class="user-list">
+            @for (f of store.friends(); track f.userId) {
+              <li class="user-row card">
+                <a class="user-main" [routerLink]="['/app/profile', f.userId]">
+                  <app-avatar [name]="f.displayName" [src]="f.avatarUrl" [online]="f.isOnline" [size]="44" />
+                  <span class="name">{{ f.displayName }}</span>
+                </a>
+                <div class="actions">
+                  <a class="btn btn-secondary" [routerLink]="['/app/profile', f.userId]">Profile</a>
+                  <button class="btn btn-secondary" type="button" (click)="unfriend(f.userId)">Unfriend</button>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      }
+
+      @if (tab() === 'followers') {
+        @if (!store.followers().length) {
+          <div class="empty card">
+            <span class="empty-icon"><app-icon name="profile" [size]="24" /></span>
+            <h3>No followers</h3>
+          </div>
+        } @else {
+          <ul class="user-list">
+            @for (f of store.followers(); track f.userId) {
+              <li class="user-row card">
+                <a class="user-main" [routerLink]="['/app/profile', f.userId]">
+                  <app-avatar [name]="f.displayName" [src]="f.avatarUrl" [online]="f.isOnline" [size]="44" />
+                  <span class="name">{{ f.displayName }}</span>
+                </a>
+                <a class="btn btn-secondary" [routerLink]="['/app/profile', f.userId]">Profile</a>
+              </li>
+            }
+          </ul>
+        }
+      }
+
+      @if (tab() === 'following') {
+        @if (!store.following().length) {
+          <div class="empty card">
+            <span class="empty-icon"><app-icon name="profile" [size]="24" /></span>
+            <h3>Not following anyone</h3>
+          </div>
+        } @else {
+          <ul class="user-list">
+            @for (f of store.following(); track f.userId) {
+              <li class="user-row card">
+                <a class="user-main" [routerLink]="['/app/profile', f.userId]">
+                  <app-avatar [name]="f.displayName" [src]="f.avatarUrl" [online]="f.isOnline" [size]="44" />
+                  <span class="name">{{ f.displayName }}</span>
+                </a>
+                <div class="actions">
+                  <button class="btn btn-secondary" type="button" (click)="unfollow(f.userId)">Unfollow</button>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      }
+
+      @if (tab() === 'requests') {
+        @if (!store.incomingRequests().length && !store.outgoingRequests().length) {
+          <div class="empty card">
+            <span class="empty-icon"><app-icon name="messages" [size]="24" /></span>
+            <h3>No pending requests</h3>
+          </div>
+        } @else {
+          @if (store.incomingRequests().length) {
+            <h3 class="section-title">Incoming</h3>
+            <ul class="user-list">
+              @for (r of store.incomingRequests(); track r.id) {
+                <li class="user-row card">
+                  <a class="user-main" [routerLink]="['/app/profile', r.requesterId]">
+                    <app-avatar [name]="r.requesterDisplayName" [src]="r.requesterAvatarUrl" [online]="false" [size]="44" />
+                    <div>
+                      <span class="name">{{ r.requesterDisplayName }}</span>
+                      <span class="meta muted">Wants to be friends</span>
+                    </div>
+                  </a>
+                  <div class="actions">
+                    <button class="btn btn-secondary" type="button" (click)="declineRequest(r.id)">Decline</button>
+                    <button class="btn btn-primary" type="button" (click)="acceptRequest(r.id)">Accept</button>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+          @if (store.outgoingRequests().length) {
+            <h3 class="section-title">Sent</h3>
+            <ul class="user-list">
+              @for (r of store.outgoingRequests(); track r.id) {
+                <li class="user-row card">
+                  <a class="user-main" [routerLink]="['/app/profile', r.addresseeId]">
+                    <app-avatar [name]="r.addresseeDisplayName" [src]="r.addresseeAvatarUrl" [online]="false" [size]="44" />
+                    <div>
+                      <span class="name">{{ r.addresseeDisplayName }}</span>
+                      <span class="meta muted">Pending</span>
+                    </div>
+                  </a>
+                  <div class="actions">
+                    <button class="btn btn-secondary" type="button" (click)="cancelRequest(r.id)">Cancel</button>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        }
+      }
+
+      @if (tab() === 'blocked') {
+        @if (!store.blocked().length) {
+          <div class="empty card">
+            <span class="empty-icon"><app-icon name="shield" [size]="24" /></span>
+            <h3>No blocked users</h3>
+          </div>
+        } @else {
+          <ul class="user-list">
+            @for (u of store.blocked(); track u.userId) {
+              <li class="user-row card">
+                <a class="user-main" [routerLink]="['/app/profile', u.userId]">
+                  <app-avatar [name]="u.displayName" [src]="u.avatarUrl" [online]="u.isOnline" [size]="44" />
+                  <span class="name">{{ u.displayName }}</span>
+                </a>
+                <div class="actions">
+                  <button class="btn btn-secondary" type="button" (click)="unblock(u.userId)">Unblock</button>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      }
+    </div>
+  }
+</div>

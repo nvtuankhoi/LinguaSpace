@@ -346,6 +346,29 @@
 .pm-name { flex: 1; min-width: 0; font-size: var(--ls-text-sm); display: flex; align-items: center; gap: var(--ls-space-2); }
 .pm-host { font-size: 10px; font-weight: var(--ls-weight-bold); color: var(--ls-primary); }
 .pm-actions { display: flex; gap: var(--ls-space-1); }
+
+// ---- Invite-by-search (in manage modal) ----
+.invite-section { gap: var(--ls-space-2); }
+.invite-section h3 {
+  font-size: 11px;
+  margin: 0;
+  color: var(--ls-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.invite-form { display: flex; gap: var(--ls-space-2); }
+.invite-form input { flex: 1; min-width: 0; font-size: var(--ls-text-sm); }
+.invite-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--ls-space-2); }
+.invite-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--ls-space-2);
+  padding: var(--ls-space-2);
+  border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-sm);
+}
+.invite-name { flex: 1; min-width: 0; font-size: var(--ls-text-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.invite-hint { font-size: var(--ls-text-sm); margin: 0; }
 .modal-foot { display: flex; justify-content: flex-end; padding-top: var(--ls-space-2); border-top: 1px solid var(--ls-border); }
 
 @media (min-width: 1024px) {

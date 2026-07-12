@@ -204,6 +204,36 @@
           <button class="btn btn-primary" type="submit" [disabled]="manageForm.invalid">Save changes</button>
         </form>
 
+        <section class="modal-body invite-section">
+          <h3>Invite people</h3>
+          <form class="invite-form" (ngSubmit)="searchInvite()">
+            <input
+              type="search"
+              placeholder="Search by name…"
+              [value]="inviteQuery()"
+              (input)="onInviteInput($event)"
+            />
+            <button class="btn btn-secondary btn-sm" type="submit" [disabled]="inviteQuery().trim().length < 2">Find</button>
+          </form>
+          @if (inviteLoading()) {
+            <p class="invite-hint muted">Searching…</p>
+          } @else if (inviteResults().length) {
+            <ul class="invite-list">
+              @for (u of inviteResults(); track u.userId) {
+                <li>
+                  <app-avatar [name]="u.displayName" [src]="u.avatarUrl" [size]="28" />
+                  <span class="invite-name">{{ u.displayName }}</span>
+                  <button class="btn btn-secondary btn-sm" type="button" (click)="inviteUser(u)" [disabled]="isInvited(u.userId)">
+                    {{ isInvited(u.userId) ? 'Invited' : 'Invite' }}
+                  </button>
+                </li>
+              }
+            </ul>
+          } @else if (inviteQuery().trim().length >= 2) {
+            <p class="invite-hint muted">No users found.</p>
+          }
+        </section>
+
         <section class="modal-body participants-manage">
           <h3>Participants</h3>
           <ul>
@@ -218,6 +248,7 @@
                 </span>
                 @if (p.userId !== room.hostId) {
                   <span class="pm-actions">
+                    <button class="btn btn-secondary btn-sm" type="button" (click)="muteUser(p.userId)">Mute</button>
                     <button class="btn btn-secondary btn-sm" type="button" (click)="makeHost(p.userId)">Make host</button>
                     <button class="btn btn-danger btn-sm" type="button" (click)="kickUser(p.userId)">Remove</button>
                   </span>

@@ -172,6 +172,24 @@ export const RoomStore = signalStore(
         await firstValueFrom(roomsApi.kick(id, targetUserId));
         await refreshCurrent();
       },
+
+      /** Force-mute a participant's microphone (host moderation). */
+      async muteParticipant(targetUserId: string, mute: boolean): Promise<void> {
+        const id = store.current()?.id;
+        if (id == null) {
+          return;
+        }
+        await firstValueFrom(roomsApi.mute(id, targetUserId, { mute }));
+      },
+
+      /** Send a room invite to a user who isn't in the room yet. */
+      async invite(targetUserId: string): Promise<void> {
+        const id = store.current()?.id;
+        if (id == null) {
+          return;
+        }
+        await firstValueFrom(roomsApi.invite(id, targetUserId));
+      },
     };
   }),
 );

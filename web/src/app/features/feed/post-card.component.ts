@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { FeedApi } from '../../core/api/feed.api';
@@ -23,7 +24,7 @@ interface ReactionOption {
 @Component({
   selector: 'app-post-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AvatarComponent, LanguageChipComponent, IconComponent, ReportDialogComponent, ReactiveFormsModule],
+  imports: [RouterLink, AvatarComponent, LanguageChipComponent, IconComponent, ReportDialogComponent, ReactiveFormsModule],
   templateUrl: './post-card.component.html',
   styleUrl: './post-card.component.scss',
 })
@@ -35,6 +36,9 @@ export class PostCardComponent {
   private readonly fb = inject(FormBuilder);
 
   readonly post = input.required<PostSummaryDto>();
+
+  /** When true (post detail page) comments are fetched and shown immediately. */
+  readonly expanded = input<boolean>(false);
 
   protected readonly comments = signal<CommentDto[]>([]);
   protected readonly showComments = signal(false);
@@ -77,6 +81,14 @@ export class PostCardComponent {
   constructor() {
     // Resolve (and cache) the author whenever the bound post changes.
     effect(() => this.users.ensure(this.post().authorId));
+
+    // On a dedicated post page, expand comments immediately (once).
+    effect(() => {
+      if (this.expanded() && this.comments().length === 0 && !this.loadingComments()) {
+        this.showComments.set(true);
+        void this.loadComments();
+      }
+    });
   }
 
   protected reactionEmoji(type: ReactionType | null): string {

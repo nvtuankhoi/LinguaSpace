@@ -39,6 +39,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/feed/feed.component').then((m) => m.FeedComponent),
       },
       {
+        path: 'post/:id',
+        title: 'Post — LinguaSpace',
+        loadComponent: () => import('./features/feed/post-detail.component').then((m) => m.PostDetailComponent),
+      },
+      {
         path: 'rooms',
         title: 'Rooms — LinguaSpace',
         loadComponent: () => import('./features/rooms/rooms-list.component').then((m) => m.RoomsListComponent),
