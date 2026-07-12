@@ -252,10 +252,10 @@ Use `@microsoft/signalr` with an `HttpConnectionBuilder` that sets
 Client → server: `JoinRoomGroup(roomId)`, `LeaveRoomGroup(roomId)`, `SendMessage(roomId, content)`.
 Server → client: `ReceiveMessage {messageId,senderId,content,sentAt}`, `UserJoinedRoom(userId,role)`,
 `UserLeftRoom(userId)`, `UserJoinedMedia(userId)`, `UserLeftMedia(userId)`,
-`ActiveSpeakerChanged(speakerIds[])`, `ScreenShareStarted(userId)`, `ScreenShareStopped(userId)`, `ParticipantMuted(userId,isMuted)`.
+`ActiveSpeakerChanged(speakerIds[])`, `ScreenShareStarted(userId)`, `ScreenShareStopped(userId)`, `ParticipantMuted(userId,isMuted)`, `MessageDeleted(messageId)`.
 
 ### PresenceHub (`/hubs/presence`)
-Call `Heartbeat()` every ~3 min. Server → client: `UserOnline(userId)`, `UserOffline(userId)`.
+Call `Heartbeat()` every ~3 min. Server → client (user-targeted via `NotifyAsync`): `UserOnline(userId)`, `UserOffline(userId)`, `Notification`, `NewDirectMessage`, `NewPost(postId,authorId)`, `DirectMessageEdited(id,conversationId,content,editedAt)`, `DirectMessageDeleted(id,conversationId)`.
 
 ---
 
