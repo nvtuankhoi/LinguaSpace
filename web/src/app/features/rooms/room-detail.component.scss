@@ -287,6 +287,23 @@
 }
 .composer input { flex: 1; min-width: 0; font-size: var(--ls-text-sm); }
 
+.composer-muted {
+  display: flex;
+  align-items: center;
+  gap: var(--ls-space-2);
+  padding: var(--ls-space-3);
+  border-top: 1px solid var(--ls-border);
+  background: var(--ls-bg);
+  color: var(--ls-muted);
+  font-size: var(--ls-text-sm);
+  flex-shrink: 0;
+}
+.send-error {
+  padding: var(--ls-space-2) var(--ls-space-3);
+  color: var(--ls-danger);
+  font-size: var(--ls-text-sm);
+}
+
 .state { padding: var(--ls-space-5); display: flex; flex-direction: column; gap: var(--ls-space-3); }
 
 // ---- Host controls ----

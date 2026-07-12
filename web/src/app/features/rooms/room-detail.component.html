@@ -159,17 +159,27 @@
           }
         </div>
 
-        <form class="composer" [formGroup]="form" (ngSubmit)="send()">
-          <input
-            type="text"
-            formControlName="content"
-            placeholder="Type a message…"
-            (input)="onInput($event)"
-            autocomplete="off"
-            maxlength="1000"
-          />
-          <button class="btn btn-primary" type="submit" [disabled]="!form.controls.content.value.trim()">Send</button>
-        </form>
+        @if (iAmMuted()) {
+          <div class="composer-muted">
+            <app-icon name="mic-off" [size]="18" />
+            <span>You have been muted in this room and cannot send messages.</span>
+          </div>
+        } @else {
+          <form class="composer" [formGroup]="form" (ngSubmit)="send()">
+            <input
+              type="text"
+              formControlName="content"
+              placeholder="Type a message…"
+              (input)="onInput($event)"
+              autocomplete="off"
+              maxlength="1000"
+            />
+            <button class="btn btn-primary" type="submit" [disabled]="!form.controls.content.value.trim()">Send</button>
+          </form>
+          @if (sendError()) {
+            <p class="send-error">{{ sendError() }}</p>
+          }
+        }
       </div>
     </div>
   }

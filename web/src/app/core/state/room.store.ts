@@ -190,6 +190,22 @@ export const RoomStore = signalStore(
         });
       },
 
+      /** Apply a participant mute change pushed from the server (realtime). */
+      applyMute(targetUserId: string, isMuted: boolean): void {
+        const room = store.current();
+        if (!room) {
+          return;
+        }
+        patchState(store, {
+          current: {
+            ...room,
+            participants: room.participants.map((p) =>
+              p.userId === targetUserId ? { ...p, isMuted } : p,
+            ),
+          },
+        });
+      },
+
       /** Send a room invite to a user who isn't in the room yet. */
       async invite(targetUserId: string): Promise<void> {
         const id = store.current()?.id;

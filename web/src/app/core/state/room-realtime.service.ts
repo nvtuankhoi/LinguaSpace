@@ -28,6 +28,13 @@ export interface RoomParticipantEvent {
   joined: boolean;
 }
 
+/** A participant's text-chat mute state changed (ParticipantMuted). */
+export interface RoomMuteEvent {
+  roomId: number;
+  userId: string;
+  isMuted: boolean;
+}
+
 const BOT_NAMES = ['Sora', 'Marco', 'Lena', 'Jin'];
 const BOT_LINES = [
   'Has anyone tried shadowing for pronunciation?',
@@ -55,6 +62,10 @@ export class RoomRealtimeService {
   private readonly participantChange$ = new Subject<RoomParticipantEvent>();
   /** Fires when a user joins or leaves the connected room. */
   readonly onParticipantChange = this.participantChange$.asObservable();
+
+  private readonly muteChange$ = new Subject<RoomMuteEvent>();
+  /** Fires when a participant's mute state changes in the connected room. */
+  readonly onMuteChange = this.muteChange$.asObservable();
 
   private roomId: number | null = null;
   private botTimer: ReturnType<typeof setInterval> | null = null;
@@ -84,6 +95,9 @@ export class RoomRealtimeService {
     this.hub.on('UserLeftRoom', (ev: { roomId: number; userId: string }) =>
       this.participantChange$.next({ ...ev, joined: false }),
     );
+    // Participant mute changes — applied locally so the host's toggle and the
+    // affected user's composer both react without a full room refetch.
+    this.hub.on('ParticipantMuted', (ev: RoomMuteEvent) => this.muteChange$.next(ev));
     await this.hub.start();
     await this.hub.invoke('JoinRoomGroup', roomId);
   }

@@ -69,6 +69,16 @@ export class RoomDetailComponent implements OnInit {
     return !!room && !!me && room.hostId === me.userId;
   });
 
+  /** True when the current user has been muted in this room (disables the composer). */
+  protected readonly iAmMuted = computed(() => {
+    const me = this.auth.user()?.userId;
+    const room = this.current();
+    if (!me || !room) {
+      return false;
+    }
+    return room.participants.find((p) => p.userId === me)?.isMuted ?? false;
+  });
+
   protected readonly showManage = signal(false);
   protected readonly manageForm = this.fb.nonNullable.group({
     title: ['', [Validators.required]],
@@ -90,6 +100,8 @@ export class RoomDetailComponent implements OnInit {
 
   protected readonly form = this.fb.nonNullable.group({ content: [''] });
 
+  protected readonly sendError = signal<string | null>(null);
+
   constructor() {
     // Append incoming realtime messages, then keep the thread scrolled to the bottom.
     this.realtime.onMessage.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((ev) => {
@@ -100,6 +112,12 @@ export class RoomDetailComponent implements OnInit {
     // Live participant list: refresh the room when someone joins or leaves.
     this.realtime.onParticipantChange.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       void this.store.refreshParticipants();
+    });
+
+    // Live mute state: apply server-pushed mute changes to the participant list
+    // (the affected user's composer reacts via the iAmMuted computed).
+    this.realtime.onMuteChange.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((ev) => {
+      this.store.applyMute(ev.userId, ev.isMuted);
     });
 
     // Attach LiveKit video tracks to their <video> elements whenever the tile set changes.
@@ -256,12 +274,19 @@ export class RoomDetailComponent implements OnInit {
 
   protected async send(): Promise<void> {
     const content = this.form.getRawValue().content.trim();
-    if (!content) {
+    if (!content || this.iAmMuted()) {
       return;
     }
-    this.form.reset();
-    await this.store.send(content);
-    this.scrollToBottom();
+    this.sendError.set(null);
+    try {
+      await this.store.send(content);
+      this.form.reset();
+      this.scrollToBottom();
+    } catch {
+      // Server rejected (e.g., the host muted us or the room closed). Keep the
+      // typed text so it isn't lost.
+      this.sendError.set('Could not send your message. You may be muted or the room may have closed.');
+    }
   }
 
   /** Deletes a room message. Backend allows the message owner OR the room host. */
