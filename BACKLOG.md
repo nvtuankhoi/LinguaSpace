@@ -17,6 +17,7 @@ Legend: **S** = nhỏ (<~1h), **M** = vừa, **L** = lớn. Endpoint prefix `/ap
 - **Quick wins** (`aabfb2e`): hủy friend request (tab Sent), tab Blocked + unblock, host mute + invite-by-search, trang post detail `/app/post/:id` (permalink ở timestamp). Fix latent bug: outgoing requests giờ filter đúng.
 - **Participant mute (đầy đủ)** (`810635b` + `f375650`): expose `isMuted` trong `RoomParticipantDto` + host toggle (Mute/Unmute + badge Muted). Backend enforce (user bị mute không gửi chat được) + broadcast `ParticipantMuted` realtime để mọi client (kể cả user bị mute) sync state live.
 - **Edit/delete realtime sync (DM + room)** (`037543f`): edit/delete DM và delete room message giờ sync live cho participant/tab khác (broadcast `DirectMessageEdited`/`DirectMessageDeleted` qua PresenceHub + `MessageDeleted` qua RoomHub). Feed post/comment edit/delete sync còn thiếu — cần "post-group broadcasting" (mục C).
+- **Live media presence** (`17f5a71`): xem ai đang trong voice/video call live — seed qua `GET /media/participants` khi mở room + consume `UserJoinedMedia`/`UserLeftMedia` realtime (badge "In call" trong manage modal + đếm "N in call" ở av-bar). Backend broadcast sẵn qua LiveKit webhook nên FE-only.
 
 ---
 
@@ -46,14 +47,14 @@ Backend đầy đủ (`src/Web/Endpoints/Moderation.cs`, role `Administrator`). 
 
 - [ ] **Email verify-token** (S): `POST /Auth/verify-email` — có "resend verification" nhưng chưa có UI nhập token / consume link verify.
 - [ ] **FCM push** (M): `POST /Auth/device-token` — chưa wire (cần FCM SDK + registration).
-- [ ] **Media session mgmt** (M): `GET /Rooms/{roomId}/media/participants`, `GET .../media/status`, `DELETE .../media` — room đang dùng LiveKit client trực tiếp, 3 endpoint này chưa gọi.
+- [ ] **Media session mgmt** (M): `GET /media/participants` ĐÃ wire (seed in-call set, `17f5a71`); còn `GET .../media/status` + `DELETE .../media` (host end-call) chưa gọi.
 - [ ] **Feed live comments/reactions** (L): khi đang xem 1 post, comment/reaction mới của người khác hiện live. Cần **backend post-group broadcasting** (`NewComment`/`NewReaction` hiện chỉ author-targeted). *(Đã làm được: following-feed new posts live.)*
 
 ---
 
 ## 🔵 D. Realtime chưa consume (còn lại)
 
-- [ ] **RoomHub `UserJoinedMedia` / `UserLeftMedia`** (S): participant media join/leave — chưa subscribe *(room membership join/leave ĐÃ consume rồi).*
+- [x] **RoomHub `UserJoinedMedia` / `UserLeftMedia`** (S): participant media join/leave — ĐÃ consume (`17f5a71`) *(room membership join/leave cũng ĐÃ consume rồi).*
 - [ ] **Feed `NewComment` / `NewReaction`** cho viewer — xem mục C (cần backend post-group).
 
 ---
