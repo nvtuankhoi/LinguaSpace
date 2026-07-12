@@ -16,9 +16,10 @@ Legend: **S** = nhỏ (<~1h), **M** = vừa, **L** = lớn. Endpoint prefix `/ap
 - **Moderation admin console** (`dff3ee6`): console `/app/admin` (role `Administrator`) — list/filter reports, resolve/dismiss, ban user; `adminGuard` + nav entry. Track thêm `app.routes`/`auth.guard`/`shell`.
 - **Quick wins** (`aabfb2e`): hủy friend request (tab Sent), tab Blocked + unblock, host mute + invite-by-search, trang post detail `/app/post/:id` (permalink ở timestamp). Fix latent bug: outgoing requests giờ filter đúng.
 - **Participant mute (đầy đủ)** (`810635b` + `f375650`): expose `isMuted` trong `RoomParticipantDto` + host toggle (Mute/Unmute + badge Muted). Backend enforce (user bị mute không gửi chat được) + broadcast `ParticipantMuted` realtime để mọi client (kể cả user bị mute) sync state live.
-- **Edit/delete realtime sync (DM + room)** (`037543f`): edit/delete DM và delete room message giờ sync live cho participant/tab khác (broadcast `DirectMessageEdited`/`DirectMessageDeleted` qua PresenceHub + `MessageDeleted` qua RoomHub). Feed post/comment edit/delete sync còn thiếu — cần "post-group broadcasting" (mục C).
+- **Edit/delete realtime sync (DM + room)** (`037543f`): edit/delete DM và delete room message giờ sync live cho participant/tab khác (broadcast `DirectMessageEdited`/`DirectMessageDeleted` qua PresenceHub + `MessageDeleted` qua RoomHub). Feed post/comment edit/delete sync lúc đó còn thiếu — đã làm ở `3d474a2` (backend) + `508e3d5` (FE).
 - **Live media presence** (`17f5a71`): xem ai đang trong voice/video call live — seed qua `GET /media/participants` khi mở room + consume `UserJoinedMedia`/`UserLeftMedia` realtime (badge "In call" trong manage modal + đếm "N in call" ở av-bar). Backend broadcast sẵn qua LiveKit webhook nên FE-only.
-- **Feed post-group broadcasting (backend)** (`3d474a2`): cơ chế realtime cho feed — viewer xem post giờ nhận live comment/reaction + edit/delete. Mở rộng PresenceHub bằng group `post-{id}` (`JoinPostGroup`/`LeavePostGroup`) + `NotifyPostGroupAsync`; broadcast `NewComment`, `NewReaction(likeCount)`, `CommentEdited`/`Deleted`, `PostEdited`/`Deleted`. Reuse connection PresenceHub (không thêm hub). **FE consume là batch tiếp.**
+- **Feed post-group broadcasting (backend)** (`3d474a2`): cơ chế realtime cho feed — viewer xem post giờ nhận live comment/reaction + edit/delete. Mở rộng PresenceHub bằng group `post-{id}` (`JoinPostGroup`/`LeavePostGroup`) + `NotifyPostGroupAsync`; broadcast `NewComment`, `NewReaction(likeCount)`, `CommentEdited`/`Deleted`, `PostEdited`/`Deleted`. Reuse connection PresenceHub (không thêm hub).
+- **Feed live (FE)** (`508e3d5`): trang post detail giờ live — comment mới/edit/delete, reaction count (post + comment), post edit, post delete (tự về feed). `PostDetailComponent` join/leave post group + apply event cấp post; `PostCard` (expanded) apply event cấp comment. Feed list giữ nguyên (chỉ NewPost live). Hoàn tất story realtime cho feed.
 
 ---
 
@@ -49,14 +50,14 @@ Backend đầy đủ (`src/Web/Endpoints/Moderation.cs`, role `Administrator`). 
 - [ ] **Email verify-token** (S): `POST /Auth/verify-email` — có "resend verification" nhưng chưa có UI nhập token / consume link verify.
 - [ ] **FCM push** (M): `POST /Auth/device-token` — chưa wire (cần FCM SDK + registration).
 - [ ] **Media session mgmt** (M): `GET /media/participants` ĐÃ wire (seed in-call set, `17f5a71`); còn `GET .../media/status` + `DELETE .../media` (host end-call) chưa gọi.
-- [ ] **Feed live comments/reactions (FE)** (M): backend post-group broadcasting ĐÃ xong (`3d474a2`); còn FE consume — `JoinPostGroup` khi xem post + apply `NewComment`/`NewReaction`/`CommentEdited`/`Deleted`/`PostEdited`/`Deleted`. *(Đã làm được: following-feed new posts live.)*
+- [x] **Feed live comments/reactions (FE)** — ĐÃ xong (`508e3d5`); live ở trang post detail (feed list vẫn chỉ `NewPost` live — có thể enhance sau).
 
 ---
 
 ## 🔵 D. Realtime chưa consume (còn lại)
 
 - [x] **RoomHub `UserJoinedMedia` / `UserLeftMedia`** (S): participant media join/leave — ĐÃ consume (`17f5a71`) *(room membership join/leave cũng ĐÃ consume rồi).*
-- [x] **Feed `NewComment` / `NewReaction`** (backend) — post-group broadcasting ĐÃ xong (`3d474a2`); FE consume còn thiếu (mục C).
+- [x] **Feed `NewComment` / `NewReaction`** — backend (`3d474a2`) + FE consume (`508e3d5`) đều xong.
 
 ---
 
