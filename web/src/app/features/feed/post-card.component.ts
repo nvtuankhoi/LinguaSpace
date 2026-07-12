@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -6,6 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import { FeedApi } from '../../core/api/feed.api';
 import { AuthStore } from '../../core/auth/auth.store';
 import { FeedStore } from '../../core/state/feed.store';
+import { PresenceRealtimeService } from '../../core/state/presence-realtime.service';
 import { UserCache } from '../../core/state/user-cache.service';
 import { LANGUAGES } from '../../core/util/languages';
 import { relativeTime } from '../../core/util/time';
@@ -34,6 +36,10 @@ export class PostCardComponent {
   private readonly feedApi = inject(FeedApi);
   private readonly auth = inject(AuthStore);
   private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly realtime = inject(PresenceRealtimeService);
+
+  private liveWired = false;
 
   readonly post = input.required<PostSummaryDto>();
 
@@ -41,6 +47,8 @@ export class PostCardComponent {
   readonly expanded = input<boolean>(false);
 
   protected readonly comments = signal<CommentDto[]>([]);
+  /** Live offset vs. the loaded commentCount (new/deleted comments since load). */
+  protected readonly commentDelta = signal(0);
   protected readonly showComments = signal(false);
   protected readonly loadingComments = signal(false);
   protected readonly commentText = signal('');
@@ -88,6 +96,52 @@ export class PostCardComponent {
         this.showComments.set(true);
         void this.loadComments();
       }
+    });
+
+    // Live comment updates from the post group (post-detail page only). Wired
+    // once when expanded becomes true; events arrive because the
+    // PostDetailComponent joins the post group on the shared presence connection.
+    effect(() => {
+      if (!this.expanded() || this.liveWired) return;
+      this.liveWired = true;
+      this.wireLiveComments();
+    });
+  }
+
+  private wireLiveComments(): void {
+    // New comment from another viewer (or our own send — deduped by id).
+    this.realtime.onNewComment.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((ev) => {
+      if (ev.postId !== this.post().id) return;
+      if (this.comments().some((c) => c.id === ev.id)) return;
+      this.users.ensure(ev.authorId);
+      this.comments.update((cs) => [
+        ...cs,
+        {
+          id: ev.id,
+          postId: ev.postId,
+          authorId: ev.authorId,
+          content: ev.content,
+          parentCommentId: ev.parentCommentId,
+          likeCount: 0,
+          createdAt: ev.createdAt,
+        },
+      ]);
+      this.commentDelta.update((n) => n + 1);
+    });
+    this.realtime.onCommentEdited.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((ev) => {
+      if (ev.postId !== this.post().id) return;
+      this.comments.update((cs) => cs.map((c) => (c.id === ev.id ? { ...c, content: ev.content } : c)));
+    });
+    this.realtime.onCommentDeleted.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((ev) => {
+      if (ev.postId !== this.post().id) return;
+      const had = this.comments().some((c) => c.id === ev.id);
+      this.comments.update((cs) => cs.filter((c) => c.id !== ev.id));
+      if (had) this.commentDelta.update((n) => n - 1);
+    });
+    // Live reaction-count change on a comment of this post.
+    this.realtime.onNewReaction.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((ev) => {
+      if (ev.targetType !== 'Comment') return;
+      this.comments.update((cs) => cs.map((c) => (c.id === ev.targetId ? { ...c, likeCount: ev.likeCount } : c)));
     });
   }
 

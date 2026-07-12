@@ -100,7 +100,7 @@
 
     <button class="action" type="button" (click)="toggleComments()" [attr.aria-expanded]="showComments()">
       <app-icon name="messages" [size]="18" />
-      <span>{{ post().commentCount }}</span>
+      <span>{{ post().commentCount + commentDelta() }}</span>
     </button>
   </footer>
 

@@ -48,6 +48,48 @@ interface DirectMessageDeletedPush {
   conversationId: number;
 }
 
+/** Live comment pushed to viewers of a post (PresenceHub post-group "NewComment"). */
+interface NewCommentPush {
+  id: number;
+  postId: number;
+  authorId: string;
+  content: string;
+  parentCommentId: number | null;
+  createdAt: string;
+}
+
+/** Live reaction-count change pushed to viewers (PresenceHub post-group "NewReaction"). */
+interface NewReactionPush {
+  targetId: number;
+  targetType: string; // "Post" | "Comment"
+  likeCount: number;
+}
+
+/** A comment on the viewed post was edited (PresenceHub post-group "CommentEdited"). */
+interface CommentEditedPush {
+  id: number;
+  postId: number;
+  content: string;
+}
+
+/** A comment on the viewed post was deleted (PresenceHub post-group "CommentDeleted"). */
+interface CommentDeletedPush {
+  id: number;
+  postId: number;
+}
+
+/** The viewed post was edited (PresenceHub post-group "PostEdited"). */
+interface PostEditedPush {
+  id: number;
+  content: string;
+  languageCode: string | null;
+}
+
+/** The viewed post was deleted (PresenceHub post-group "PostDeleted"). */
+interface PostDeletedPush {
+  id: number;
+}
+
 /** Renews the Redis presence TTL (PresenceHub sets it to 10 min). */
 const HEARTBEAT_INTERVAL_MS = 3 * 60 * 1000;
 
@@ -70,6 +112,12 @@ export class PresenceRealtimeService {
   private readonly dmEdited$ = new Subject<DirectMessageEditedPush>();
   private readonly dmDeleted$ = new Subject<DirectMessageDeletedPush>();
   private readonly newPost$ = new Subject<{ postId: number; authorId: string }>();
+  private readonly newComment$ = new Subject<NewCommentPush>();
+  private readonly newReaction$ = new Subject<NewReactionPush>();
+  private readonly commentEdited$ = new Subject<CommentEditedPush>();
+  private readonly commentDeleted$ = new Subject<CommentDeletedPush>();
+  private readonly postEdited$ = new Subject<PostEditedPush>();
+  private readonly postDeleted$ = new Subject<PostDeletedPush>();
 
   /** User ids currently reported online by PresenceHub (UserOnline/UserOffline). */
   private readonly _online = signal<ReadonlySet<string>>(new Set());
@@ -85,12 +133,42 @@ export class PresenceRealtimeService {
   readonly onDmDeleted = this.dmDeleted$.asObservable();
   /** New post from a followed user (PostCreatedEventHandler fans "NewPost" to followers). */
   readonly onNewPost = this.newPost$.asObservable();
+  /** Live comment on a post being viewed (post-group "NewComment"). */
+  readonly onNewComment = this.newComment$.asObservable();
+  /** Live reaction-count change on a viewed post/comment (post-group "NewReaction"). */
+  readonly onNewReaction = this.newReaction$.asObservable();
+  /** A comment on a viewed post was edited (post-group "CommentEdited"). */
+  readonly onCommentEdited = this.commentEdited$.asObservable();
+  /** A comment on a viewed post was deleted (post-group "CommentDeleted"). */
+  readonly onCommentDeleted = this.commentDeleted$.asObservable();
+  /** A viewed post was edited (post-group "PostEdited"). */
+  readonly onPostEdited = this.postEdited$.asObservable();
+  /** A viewed post was deleted (post-group "PostDeleted"). */
+  readonly onPostDeleted = this.postDeleted$.asObservable();
 
   private hub: HubConnection | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
   isOnline(userId: string): boolean {
     return this._online().has(userId);
+  }
+
+  /** Subscribe to live updates for a feed post (call when viewing it). */
+  async joinPostGroup(postId: number): Promise<void> {
+    try {
+      await this.hub?.invoke('JoinPostGroup', postId);
+    } catch (err) {
+      console.error('[presence] joinPostGroup failed', err);
+    }
+  }
+
+  /** Stop receiving live updates for a feed post (call on navigation away). */
+  async leavePostGroup(postId: number): Promise<void> {
+    try {
+      await this.hub?.invoke('LeavePostGroup', postId);
+    } catch {
+      /* ignore — leaving is best-effort */
+    }
   }
 
   async connect(): Promise<void> {
@@ -125,6 +203,23 @@ export class PresenceRealtimeService {
     hub.on('DirectMessageDeleted', (ev: DirectMessageDeletedPush) => this.dmDeleted$.next(ev));
     // New posts from followed users → live "following" feed.
     hub.on('NewPost', (ev: { postId: number; authorId: string }) => this.newPost$.next(ev));
+
+    // Feed post-group events (a client only receives these after JoinPostGroup).
+    // Note: the backend also sends author-targeted "NewComment"/"NewReaction"
+    // pings with a different (incomplete) shape; ignore those and keep only the
+    // well-formed post-group broadcasts.
+    hub.on('NewComment', (ev: NewCommentPush) => {
+      if (typeof ev?.id !== 'number' || typeof ev?.content !== 'string') return;
+      this.newComment$.next(ev);
+    });
+    hub.on('NewReaction', (ev: NewReactionPush) => {
+      if (typeof ev?.likeCount !== 'number') return;
+      this.newReaction$.next(ev);
+    });
+    hub.on('CommentEdited', (ev: CommentEditedPush) => this.commentEdited$.next(ev));
+    hub.on('CommentDeleted', (ev: CommentDeletedPush) => this.commentDeleted$.next(ev));
+    hub.on('PostEdited', (ev: PostEditedPush) => this.postEdited$.next(ev));
+    hub.on('PostDeleted', (ev: PostDeletedPush) => this.postDeleted$.next(ev));
 
     try {
       await hub.start();
