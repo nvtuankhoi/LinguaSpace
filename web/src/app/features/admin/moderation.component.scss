@@ -1,0 +1,130 @@
+:host { display: block; }
+
+.mod-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ls-space-4);
+  padding: var(--ls-space-4) var(--ls-space-4) var(--ls-space-8);
+}
+
+.page-head h1 { font-size: var(--ls-text-title); margin-bottom: var(--ls-space-1); }
+
+// ---- Filter tabs ----
+.filters {
+  display: flex;
+  gap: var(--ls-space-1);
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--ls-border);
+}
+.filter-tab {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--ls-text-sm);
+  font-weight: var(--ls-weight-semibold);
+  color: var(--ls-muted);
+  padding: var(--ls-space-2) var(--ls-space-3);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color var(--ls-duration-fast) var(--ls-ease-out),
+              border-color var(--ls-duration-fast) var(--ls-ease-out);
+}
+.filter-tab:hover { color: var(--ls-ink); }
+.filter-tab.active { color: var(--ls-primary); border-bottom-color: var(--ls-primary); }
+
+.state { padding: var(--ls-space-5); display: flex; flex-direction: column; align-items: flex-start; gap: var(--ls-space-3); }
+
+// ---- Empty ----
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--ls-space-2);
+  padding: var(--ls-space-8) var(--ls-space-4);
+}
+.empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--ls-radius-md);
+  background: var(--ls-primary-tint);
+  color: var(--ls-primary);
+  margin-bottom: var(--ls-space-2);
+}
+.empty h3 { font-size: var(--ls-text-subtitle); margin: 0; }
+.empty p { font-size: var(--ls-text-sm); }
+
+// ---- Report list ----
+.report-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--ls-space-3); }
+
+.report { display: flex; flex-direction: column; gap: var(--ls-space-3); }
+
+.report-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ls-space-2);
+}
+
+.reason {
+  margin: 0;
+  font-size: var(--ls-text-sm);
+  line-height: 1.5;
+  color: var(--ls-ink);
+}
+
+// Target-type chip colors (compose on the global .chip base)
+.chip[data-type='User'] { background: var(--ls-primary-tint); color: var(--ls-primary); }
+.chip[data-type='Post'] { background: var(--ls-accent-tint); color: var(--ls-on-accent); }
+.chip[data-type='Room'] { background: var(--ls-surface-strong); color: var(--ls-ink); }
+.chip[data-type='Message'] { background: var(--ls-surface-strong); color: var(--ls-ink); }
+
+// Status badge — text always present (never color alone)
+.status-badge {
+  font-size: var(--ls-text-caption);
+  font-weight: var(--ls-weight-semibold);
+  padding: 3px var(--ls-space-2);
+  border-radius: var(--ls-radius-pill);
+  white-space: nowrap;
+}
+.status-badge[data-status='Pending'] { background: color-mix(in oklch, var(--ls-warning) 14%, transparent); color: var(--ls-warning); }
+.status-badge[data-status='UnderReview'] { background: var(--ls-primary-tint); color: var(--ls-primary); }
+.status-badge[data-status='Resolved'] { background: color-mix(in oklch, var(--ls-success) 16%, transparent); color: var(--ls-success); }
+.status-badge[data-status='Dismissed'] { background: var(--ls-surface-strong); color: var(--ls-muted); }
+
+// Meta grid
+.meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--ls-space-2) var(--ls-space-4);
+  margin: 0;
+}
+.meta-row { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.meta dt { font-size: var(--ls-text-caption); color: var(--ls-muted); }
+.meta dd { margin: 0; font-size: var(--ls-text-sm); word-break: break-all; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--ls-text-caption); }
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ls-space-2);
+  padding-top: var(--ls-space-3);
+  border-top: 1px solid var(--ls-border);
+}
+.actions .btn { padding: 8px 14px; font-size: var(--ls-text-sm); }
+
+// Pager
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ls-space-3);
+}
+.pager-info { font-size: var(--ls-text-sm); }

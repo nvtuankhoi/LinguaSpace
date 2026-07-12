@@ -1,0 +1,102 @@
+<div class="mod-wrap">
+  <header class="page-head">
+    <h1>Moderation</h1>
+    <p class="muted">Review reports and moderate users.</p>
+  </header>
+
+  <div class="filters" role="tablist" aria-label="Filter reports by status">
+    @for (f of filters; track f) {
+      <button
+        class="filter-tab"
+        role="tab"
+        [class.active]="filter() === f"
+        [attr.aria-selected]="filter() === f"
+        (click)="setFilter(f)"
+      >
+        {{ f }}
+      </button>
+    }
+  </div>
+
+  @if (status() === 'loading') {
+    <p class="muted state">Loading reports…</p>
+  } @else if (status() === 'error') {
+    <div class="card state error-state">
+      <p>Couldn't load reports.</p>
+      <button class="btn btn-secondary" type="button" (click)="reload()">Retry</button>
+    </div>
+  } @else if (!reports().length) {
+    <div class="empty card">
+      <span class="empty-icon"><app-icon name="check" [size]="24" /></span>
+      <h3>All clear</h3>
+      <p class="muted">No {{ filter() === 'All' ? '' : filter().toLowerCase() }} reports to review.</p>
+    </div>
+  } @else {
+    <ul class="report-list">
+      @for (r of reports(); track r.id) {
+        <li class="report card">
+          <div class="report-head">
+            <span class="chip" [attr.data-type]="r.targetType">{{ r.targetType }}</span>
+            <span class="status-badge" [attr.data-status]="r.status">{{ r.status }}</span>
+          </div>
+
+          <p class="reason">“{{ r.reason }}”</p>
+
+          <dl class="meta">
+            <div class="meta-row">
+              <dt>Target</dt>
+              <dd>
+                @if (r.targetType === 'User') {
+                  <a [routerLink]="['/app/profile', r.targetId]">{{ short(r.targetId) }}</a>
+                } @else {
+                  <span class="mono">{{ r.targetId }}</span>
+                }
+              </dd>
+            </div>
+            <div class="meta-row">
+              <dt>Reporter</dt>
+              <dd class="mono">{{ short(r.reporterId) }}</dd>
+            </div>
+            <div class="meta-row">
+              <dt>Created</dt>
+              <dd>{{ time(r.createdAt) }}</dd>
+            </div>
+            @if (r.resolvedAt) {
+              <div class="meta-row">
+                <dt>Resolved</dt>
+                <dd>
+                  {{ time(r.resolvedAt) }}
+                  @if (r.resolvedBy) {
+                    <span class="muted"> · {{ short(r.resolvedBy) }}</span>
+                  }
+                </dd>
+              </div>
+            }
+          </dl>
+
+          @if (isActive(r)) {
+            <div class="actions">
+              <button class="btn btn-secondary" type="button" (click)="resolve(r.id, ACTION_RESOLVE)" [disabled]="isPendingReport(r.id)">
+                <app-icon name="check" [size]="16" /> Resolve
+              </button>
+              <button class="btn btn-ghost" type="button" (click)="resolve(r.id, ACTION_DISMISS)" [disabled]="isPendingReport(r.id)">
+                Dismiss
+              </button>
+              @if (r.targetType === 'User') {
+                <button class="btn btn-danger" type="button" (click)="ban(r.targetId)" [disabled]="isPendingUser(r.targetId)">
+                  <app-icon name="shield" [size]="16" /> Ban user
+                </button>
+              }
+            </div>
+          }
+        </li>
+      }
+    </ul>
+
+    <div class="pager">
+      <button class="btn btn-ghost" type="button" (click)="prev()" [disabled]="page() <= 1">Prev</button>
+      <span class="muted pager-info">Page {{ page() }} of {{ totalPages() }} · {{ totalCount() }} total</span>
+      <button class="btn btn-ghost" type="button" (click)="next()" [disabled]="!hasMore()">Next</button>
+    </div>
+  }
+</div>

@@ -44,6 +44,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
         @case ('plus') { <path d="M12 5v14M5 12h14" /> }
         @case ('flag') { <path d="M4 22V3" /><path d="M4 4h13l-2.5 3.5L17 11H4" /> }
         @case ('edit') { <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" /> }
+        @case ('shield') { <path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z" /> }
       }
     </svg>
   `,
