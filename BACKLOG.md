@@ -20,6 +20,7 @@ Legend: **S** = nhỏ (<~1h), **M** = vừa, **L** = lớn. Endpoint prefix `/ap
 - **Live media presence** (`17f5a71`): xem ai đang trong voice/video call live — seed qua `GET /media/participants` khi mở room + consume `UserJoinedMedia`/`UserLeftMedia` realtime (badge "In call" trong manage modal + đếm "N in call" ở av-bar). Backend broadcast sẵn qua LiveKit webhook nên FE-only.
 - **Feed post-group broadcasting (backend)** (`3d474a2`): cơ chế realtime cho feed — viewer xem post giờ nhận live comment/reaction + edit/delete. Mở rộng PresenceHub bằng group `post-{id}` (`JoinPostGroup`/`LeavePostGroup`) + `NotifyPostGroupAsync`; broadcast `NewComment`, `NewReaction(likeCount)`, `CommentEdited`/`Deleted`, `PostEdited`/`Deleted`. Reuse connection PresenceHub (không thêm hub).
 - **Feed live (FE)** (`508e3d5`): trang post detail giờ live — comment mới/edit/delete, reaction count (post + comment), post edit, post delete (tự về feed). `PostDetailComponent` join/leave post group + apply event cấp post; `PostCard` (expanded) apply event cấp comment. Feed list giữ nguyên (chỉ NewPost live). Hoàn tất story realtime cho feed.
+- **Media session mgmt** (`3ee9655`): host "End call" (nút danger trong AV bar) — `DELETE /Rooms/{id}/media` terminate LiveKit room, ngắt kết nối tất cả. Wire thêm `GET .../media/status` để reconcile in-call set sau end-call. Handle `RoomEvent.Disconnected` (host end-call / mất mạng / server kick) để reset UI AV thay vì kẹt "Live" stale. Đóng nốt item C media-session-mgmt (chỉ còn email verify-token + FCM).
 
 ---
 
@@ -49,7 +50,7 @@ Backend đầy đủ (`src/Web/Endpoints/Moderation.cs`, role `Administrator`). 
 
 - [ ] **Email verify-token** (S): `POST /Auth/verify-email` — có "resend verification" nhưng chưa có UI nhập token / consume link verify.
 - [ ] **FCM push** (M): `POST /Auth/device-token` — chưa wire (cần FCM SDK + registration).
-- [ ] **Media session mgmt** (M): `GET /media/participants` ĐÃ wire (seed in-call set, `17f5a71`); còn `GET .../media/status` + `DELETE .../media` (host end-call) chưa gọi.
+- [ ] **Media session mgmt** (M): `GET /media/participants` ĐÃ wire (seed in-call set, `17f5a71`); `GET .../media/status` + `DELETE .../media` (host end-call) ĐÃ wire (`3ee9655`).
 - [x] **Feed live comments/reactions (FE)** — ĐÃ xong (`508e3d5`); live ở trang post detail (feed list vẫn chỉ `NewPost` live — có thể enhance sau).
 
 ---
