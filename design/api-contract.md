@@ -255,7 +255,19 @@ Server → client: `ReceiveMessage {messageId,senderId,content,sentAt}`, `UserJo
 `ActiveSpeakerChanged(speakerIds[])`, `ScreenShareStarted(userId)`, `ScreenShareStopped(userId)`, `ParticipantMuted(userId,isMuted)`, `MessageDeleted(messageId)`.
 
 ### PresenceHub (`/hubs/presence`)
-Call `Heartbeat()` every ~3 min. Server → client (user-targeted via `NotifyAsync`): `UserOnline(userId)`, `UserOffline(userId)`, `Notification`, `NewDirectMessage`, `NewPost(postId,authorId)`, `DirectMessageEdited(id,conversationId,content,editedAt)`, `DirectMessageDeleted(id,conversationId)`.
+Call `Heartbeat()` every ~3 min. While viewing a feed post, call
+`JoinPostGroup(postId)` to receive its live updates; call `LeavePostGroup(postId)`
+on navigation away.
+
+Server → client (user-targeted via `NotifyAsync`): `UserOnline(userId)`,
+`UserOffline(userId)`, `Notification`, `NewDirectMessage`, `NewPost(postId,authorId)`,
+`DirectMessageEdited(id,conversationId,content,editedAt)`, `DirectMessageDeleted(id,conversationId)`.
+
+Server → client (post group `post-{postId}` via `NotifyPostGroupAsync`):
+`NewComment(id,postId,authorId,content,parentCommentId,createdAt)`,
+`NewReaction(targetId,targetType,likeCount)`, `CommentEdited(id,postId,content)`,
+`CommentDeleted(id,postId)`, `PostEdited(id,content,languageCode)`, `PostDeleted(id)`.
+A client only receives these while joined to that post's group.
 
 ---
 
