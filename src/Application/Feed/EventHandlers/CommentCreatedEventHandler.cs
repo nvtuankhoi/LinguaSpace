@@ -58,5 +58,25 @@ public class CommentCreatedEventHandler : INotificationHandler<CommentCreatedEve
                 new { notification.CommentId, notification.PostId, SenderId = notification.AuthorId },
                 cancellationToken);
         }
+
+        // Live comment for everyone viewing this post (post group). The comment
+        // author's own client dedups by comment id, matching room-chat behavior.
+        Comment? comment = await _context.Comments.FindAsync([notification.CommentId], cancellationToken);
+        if (comment is not null)
+        {
+            await _notificationService.NotifyPostGroupAsync(
+                notification.PostId,
+                "NewComment",
+                new
+                {
+                    Id = comment.Id,
+                    PostId = notification.PostId,
+                    AuthorId = comment.AuthorId,
+                    Content = comment.Content,
+                    ParentCommentId = comment.ParentCommentId,
+                    CreatedAt = comment.Created,
+                },
+                cancellationToken);
+        }
     }
 }

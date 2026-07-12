@@ -19,11 +19,16 @@ public class UpdateCommentCommandHandler : IRequestHandler<UpdateCommentCommand>
 {
     private readonly IApplicationDbContext _context;
     private readonly IUser _currentUser;
+    private readonly INotificationService _notifications;
 
-    public UpdateCommentCommandHandler(IApplicationDbContext context, IUser currentUser)
+    public UpdateCommentCommandHandler(
+        IApplicationDbContext context,
+        IUser currentUser,
+        INotificationService notifications)
     {
         _context = context;
         _currentUser = currentUser;
+        _notifications = notifications;
     }
 
     public async Task Handle(UpdateCommentCommand request, CancellationToken cancellationToken)
@@ -41,5 +46,11 @@ public class UpdateCommentCommandHandler : IRequestHandler<UpdateCommentCommand>
 
         comment.Content = request.Content;
         await _context.SaveChangesAsync(cancellationToken);
+
+        await _notifications.NotifyPostGroupAsync(
+            comment.PostId,
+            "CommentEdited",
+            new { Id = comment.Id, PostId = comment.PostId, Content = comment.Content },
+            cancellationToken);
     }
 }

@@ -23,6 +23,8 @@ public class ReactionAddedEventHandler : INotificationHandler<ReactionAddedEvent
     {
         string? targetOwnerId = null;
         Domain.Enums.NotificationType notifType;
+        int postGroupId;
+        int newLikeCount;
 
         if (notification.TargetType == "Post")
         {
@@ -35,6 +37,8 @@ public class ReactionAddedEventHandler : INotificationHandler<ReactionAddedEvent
             post.LikeCount++;
             targetOwnerId = post.AuthorId;
             notifType = Domain.Enums.NotificationType.PostLike;
+            postGroupId = notification.TargetId;
+            newLikeCount = post.LikeCount;
         }
         else
         {
@@ -47,36 +51,48 @@ public class ReactionAddedEventHandler : INotificationHandler<ReactionAddedEvent
             comment.LikeCount++;
             targetOwnerId = comment.AuthorId;
             notifType = Domain.Enums.NotificationType.CommentLike;
+            postGroupId = comment.PostId;
+            newLikeCount = comment.LikeCount;
         }
 
-        // Don't notify if user reacted to their own content
-        if (targetOwnerId == notification.ReactorId)
+        // Don't create a bell notification if the user reacted to their own content
+        // (but still persist the count change and broadcast it live below).
+        if (targetOwnerId != notification.ReactorId)
         {
-            await _context.SaveChangesAsync(cancellationToken);
-            return;
-        }
-
-        Domain.Entities.Notification notif = new()
-        {
-            RecipientId = targetOwnerId,
-            Type = notifType,
-            Payload = System.Text.Json.JsonSerializer.Serialize(new
+            Domain.Entities.Notification notif = new()
             {
-                notification.ReactionId,
-                notification.TargetId,
-                notification.TargetType,
-                SenderId = notification.ReactorId,
-            }),
-            CreatedAt = DateTimeOffset.UtcNow,
-        };
+                RecipientId = targetOwnerId,
+                Type = notifType,
+                Payload = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    notification.ReactionId,
+                    notification.TargetId,
+                    notification.TargetType,
+                    SenderId = notification.ReactorId,
+                }),
+                CreatedAt = DateTimeOffset.UtcNow,
+            };
 
-        _context.Notifications.Add(notif);
+            _context.Notifications.Add(notif);
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
 
-        await _notificationService.NotifyAsync(
-            targetOwnerId,
+        // Live reaction-count update for everyone viewing this post.
+        await _notificationService.NotifyPostGroupAsync(
+            postGroupId,
             "NewReaction",
-            new { notification.TargetId, notification.TargetType, SenderId = notification.ReactorId },
+            new { notification.TargetId, notification.TargetType, LikeCount = newLikeCount },
             cancellationToken);
+
+        // Bell notification for the target owner (skipped on self-reaction).
+        if (targetOwnerId != notification.ReactorId)
+        {
+            await _notificationService.NotifyAsync(
+                targetOwnerId,
+                "NewReaction",
+                new { notification.TargetId, notification.TargetType, SenderId = notification.ReactorId },
+                cancellationToken);
+        }
     }
 }

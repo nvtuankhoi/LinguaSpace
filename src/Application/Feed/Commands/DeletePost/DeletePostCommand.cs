@@ -10,11 +10,16 @@ public class DeletePostCommandHandler : IRequestHandler<DeletePostCommand>
 {
     private readonly IApplicationDbContext _context;
     private readonly IUser _currentUser;
+    private readonly INotificationService _notifications;
 
-    public DeletePostCommandHandler(IApplicationDbContext context, IUser currentUser)
+    public DeletePostCommandHandler(
+        IApplicationDbContext context,
+        IUser currentUser,
+        INotificationService notifications)
     {
         _context = context;
         _currentUser = currentUser;
+        _notifications = notifications;
     }
 
     public async Task Handle(DeletePostCommand request, CancellationToken cancellationToken)
@@ -32,5 +37,11 @@ public class DeletePostCommandHandler : IRequestHandler<DeletePostCommand>
 
         post.IsDeleted = true;
         await _context.SaveChangesAsync(cancellationToken);
+
+        await _notifications.NotifyPostGroupAsync(
+            post.Id,
+            "PostDeleted",
+            new { Id = post.Id },
+            cancellationToken);
     }
 }

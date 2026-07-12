@@ -81,6 +81,21 @@ public class PresenceHub : Hub
         }
     }
 
+    /// <summary>
+    /// Subscribe to live updates for a feed post (new comments/reactions and
+    /// post/comment edits/deletes). Called when a client views a post.
+    /// </summary>
+    public async Task JoinPostGroup(int postId)
+    {
+        await Groups.AddToGroupAsync(Context.ConnectionId, PostGroupName(postId));
+    }
+
+    /// <summary>Stop receiving live updates for a feed post (e.g. on navigation away).</summary>
+    public async Task LeavePostGroup(int postId)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, PostGroupName(postId));
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
     private async Task UpdateDbPresenceAsync(string userId, bool isOnline)
@@ -103,4 +118,7 @@ public class PresenceHub : Hub
     }
 
     private static string PresenceKey(string userId) => $"presence:{userId}";
+
+    /// <summary>SignalR group name for a feed post's live-update channel.</summary>
+    public static string PostGroupName(int postId) => $"post-{postId}";
 }
