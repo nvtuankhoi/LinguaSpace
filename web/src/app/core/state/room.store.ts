@@ -40,6 +40,17 @@ export const RoomStore = signalStore(
       }
     };
 
+    /** Load rooms the current user participates in (GET /Rooms/mine). */
+    const loadMyRooms = async (): Promise<void> => {
+      patchState(store, { status: 'loading' });
+      try {
+        const res = await firstValueFrom(roomsApi.getMine());
+        patchState(store, { rooms: res.items, status: 'idle' });
+      } catch {
+        patchState(store, { status: 'error' });
+      }
+    };
+
     const refreshCurrent = async (): Promise<void> => {
       const id = store.current()?.id;
       if (id == null) {
@@ -55,6 +66,7 @@ export const RoomStore = signalStore(
 
     return {
       loadRooms,
+      loadMyRooms,
 
       /** Re-fetch the current room so the participant list/count stays live
        *  on UserJoinedRoom/UserLeftRoom pushes. */

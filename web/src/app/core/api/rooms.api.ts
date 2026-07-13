@@ -29,6 +29,12 @@ export class RoomsApi {
     return this.http.get<PaginatedResult<RoomSummaryDto>>(`${this.base}/Rooms`, { params, withCredentials: true });
   }
 
+  /** Rooms the current user participates in. GET /Rooms/mine → PaginatedResult<RoomSummaryDto>. */
+  getMine(opts: { page?: number; pageSize?: number } = {}) {
+    const params = new HttpParams().set('page', String(opts.page ?? 1)).set('pageSize', String(opts.pageSize ?? 50));
+    return this.http.get<PaginatedResult<RoomSummaryDto>>(`${this.base}/Rooms/mine`, { params, withCredentials: true });
+  }
+
   getRoom(id: number) {
     return this.http.get<RoomDto>(`${this.base}/Rooms/${id}`, { withCredentials: true });
   }
