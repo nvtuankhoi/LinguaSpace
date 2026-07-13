@@ -10,11 +10,16 @@ public class RemoveReactionCommandHandler : IRequestHandler<RemoveReactionComman
 {
     private readonly IApplicationDbContext _context;
     private readonly IUser _currentUser;
+    private readonly INotificationService _notifications;
 
-    public RemoveReactionCommandHandler(IApplicationDbContext context, IUser currentUser)
+    public RemoveReactionCommandHandler(
+        IApplicationDbContext context,
+        IUser currentUser,
+        INotificationService notifications)
     {
         _context = context;
         _currentUser = currentUser;
+        _notifications = notifications;
     }
 
     public async Task Handle(RemoveReactionCommand request, CancellationToken cancellationToken)
@@ -49,5 +54,17 @@ public class RemoveReactionCommandHandler : IRequestHandler<RemoveReactionComman
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Broadcast the decremented count live to everyone viewing this post.
+        // Mirrors AddReaction's "NewReaction" push; the FE applies likeCount
+        // absolutely, so the same event serves both add and remove.
+        if (post is not null)
+        {
+            await _notifications.NotifyPostGroupAsync(
+                request.PostId,
+                "NewReaction",
+                new { TargetId = request.PostId, TargetType = ReactionTargetType.Post.ToString(), LikeCount = post.LikeCount },
+                cancellationToken);
+        }
     }
 }
