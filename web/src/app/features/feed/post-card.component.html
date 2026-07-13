@@ -77,8 +77,19 @@
         <span class="reaction-icon" [class.liked]="myReaction() === 'Like'" [class.bounce]="justReacted()">
           {{ reactionEmoji(myReaction()) }}
         </span>
-        <span>{{ post().likeCount }}</span>
       </button>
+
+      @if (post().likeCount > 0) {
+        <button
+          class="action reactor-count"
+          type="button"
+          (click)="toggleReactors()"
+          [attr.aria-expanded]="showReactors()"
+          aria-label="See who reacted"
+        >
+          {{ post().likeCount }}
+        </button>
+      }
 
       @if (showPicker()) {
         <div class="reaction-picker" role="toolbar" aria-label="Choose a reaction">
@@ -93,6 +104,26 @@
             >
               {{ r.emoji }}
             </button>
+          }
+        </div>
+      }
+
+      @if (showReactors()) {
+        <div class="reactor-popover" role="dialog" aria-label="Who reacted">
+          @if (loadingReactors()) {
+            <span class="popover-empty">Loading…</span>
+          } @else if (!reactors().length) {
+            <span class="popover-empty">No reactions yet.</span>
+          } @else {
+            <ul class="reactor-list">
+              @for (r of reactors(); track r.userId) {
+                <li class="reactor">
+                  <app-avatar [name]="r.displayName" [src]="r.avatarUrl" [size]="28" />
+                  <span class="reactor-name">{{ r.displayName }}</span>
+                  <span class="reactor-emoji" [title]="r.reactionType">{{ reactionEmoji(r.reactionType) }}</span>
+                </li>
+              }
+            </ul>
           }
         </div>
       }

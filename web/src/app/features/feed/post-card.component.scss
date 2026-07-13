@@ -118,6 +118,46 @@ app-lang-chip { margin-inline-start: auto; }
 .reaction-option:hover { transform: scale(1.3); background: var(--ls-surface-strong); }
 .reaction-option.chosen { background: var(--ls-primary-tint); }
 
+// ---- Who-reacted popover (triggered by the like-count button) ----
+.reactor-count { padding-inline: var(--ls-space-1); }
+
+.reactor-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  min-width: 220px;
+  max-width: 280px;
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--ls-surface);
+  border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-md);
+  padding: var(--ls-space-2);
+  box-shadow: var(--ls-shadow-lift);
+  z-index: var(--ls-z-dropdown);
+  animation: picker-pop 0.15s var(--ls-ease-out) both;
+}
+.popover-empty {
+  display: block;
+  padding: var(--ls-space-2);
+  font-size: var(--ls-text-sm);
+  color: var(--ls-muted);
+}
+.reactor-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.reactor {
+  display: flex;
+  align-items: center;
+  gap: var(--ls-space-2);
+  padding: var(--ls-space-1) var(--ls-space-2);
+  border-radius: var(--ls-radius-sm);
+}
+.reactor:hover { background: var(--ls-surface-strong); }
+.reactor-name { flex: 1; font-size: var(--ls-text-sm); }
+.reactor-emoji { font-size: 1.05em; line-height: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .reactor-popover { animation: none; }
+}
+
 // ---- Comments section ----
 .comments {
   display: flex;

@@ -10,6 +10,7 @@ import {
   PaginatedResult,
   PostDto,
   PostSummaryDto,
+  ReactionDetailDto,
   ReactionType,
   UpdateCommentRequest,
   UpdatePostRequest,
@@ -74,6 +75,17 @@ export class FeedApi {
 
   removeReaction(postId: number, reactionType: ReactionType) {
     return this.http.delete(`${this.base}/Feed/posts/${postId}/reactions/${reactionType}`, {
+      withCredentials: true,
+    });
+  }
+
+  /** Who reacted to a post. GET /Feed/posts/{postId}/reactions → PaginatedResult<ReactionDetailDto>. */
+  getReactions(postId: number, opts: { page?: number; pageSize?: number } = {}) {
+    const params = new HttpParams()
+      .set('page', String(opts.page ?? 1))
+      .set('pageSize', String(opts.pageSize ?? 50));
+    return this.http.get<PaginatedResult<ReactionDetailDto>>(`${this.base}/Feed/posts/${postId}/reactions`, {
+      params,
       withCredentials: true,
     });
   }

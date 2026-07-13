@@ -11,7 +11,7 @@ import { PresenceRealtimeService } from '../../core/state/presence-realtime.serv
 import { UserCache } from '../../core/state/user-cache.service';
 import { LANGUAGES } from '../../core/util/languages';
 import { relativeTime } from '../../core/util/time';
-import { CommentDto, PostSummaryDto } from '../../core/models';
+import { CommentDto, PostSummaryDto, ReactionDetailDto } from '../../core/models';
 import { ReactionType } from '../../core/models/enums';
 import { AvatarComponent } from '../../shared/ui/avatar/avatar.component';
 import { IconComponent } from '../../shared/ui/icon/icon.component';
@@ -58,6 +58,11 @@ export class PostCardComponent {
   protected readonly showReport = signal(false);
   protected readonly replyTo = signal<number | null>(null);
   protected readonly replyText = signal('');
+
+  // ── Who-reacted popover ─────────────────────────────────────────────
+  protected readonly showReactors = signal(false);
+  protected readonly reactors = signal<ReactionDetailDto[]>([]);
+  protected readonly loadingReactors = signal(false);
 
   // ── Inline post edit ────────────────────────────────────────────────
   protected readonly editingPost = signal(false);
@@ -177,6 +182,25 @@ export class PostCardComponent {
     this.justReacted.set(true);
     setTimeout(() => this.justReacted.set(false), 400);
     await this.feed.react(this.post().id, type);
+  }
+
+  /** Toggle the "who reacted" popover for this post. Refetches on each open so
+   *  the list stays fresh (a single GET; cheap). */
+  protected async toggleReactors(): Promise<void> {
+    if (this.showReactors()) {
+      this.showReactors.set(false);
+      return;
+    }
+    this.showReactors.set(true);
+    this.loadingReactors.set(true);
+    try {
+      const res = await firstValueFrom(this.feedApi.getReactions(this.post().id));
+      this.reactors.set(res.items);
+    } catch {
+      this.reactors.set([]);
+    } finally {
+      this.loadingReactors.set(false);
+    }
   }
 
   protected onCommentInput(event: Event): void {
