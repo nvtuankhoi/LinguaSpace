@@ -22,6 +22,7 @@ Legend: **S** = nhỏ (<~1h), **M** = vừa, **L** = lớn. Endpoint prefix `/ap
 - **Feed live (FE)** (`508e3d5`): trang post detail giờ live — comment mới/edit/delete, reaction count (post + comment), post edit, post delete (tự về feed). `PostDetailComponent` join/leave post group + apply event cấp post; `PostCard` (expanded) apply event cấp comment. Feed list giữ nguyên (chỉ NewPost live). Hoàn tất story realtime cho feed.
 - **Media session mgmt** (`3ee9655`): host "End call" (nút danger trong AV bar) — `DELETE /Rooms/{id}/media` terminate LiveKit room, ngắt kết nối tất cả. Wire thêm `GET .../media/status` để reconcile in-call set sau end-call. Handle `RoomEvent.Disconnected` (host end-call / mất mạng / server kick) để reset UI AV thay vì kẹt "Live" stale. Đóng nốt item C media-session-mgmt (chỉ còn email verify-token + FCM).
 - **Feed list live** (`f664db7`): đưa realtime lên cả feed list (following + explore), không chỉ trang detail. Mỗi post loaded join post group; `PostEdited`/`PostDeleted`/`NewReaction(Post)`/`NewComment`/`CommentDeleted` patch thẳng `items` trong FeedStore. Hoàn thiện story realtime feed end-to-end (list + detail).
+- **Email verification UI** (`d8d407e`): wire `POST /Auth/verify-email` — nhập token thủ công ở Settings (input + Verify, refresh `isEmailConfirmed`) + trang `/verify-email` consume link từ email (auto-verify). authGuard giữ `?returnUrl` để click link lúc chưa login round-trip token qua login (guard open-redirect). Đóng item C email-verify (chỉ còn FCM).
 
 ---
 
@@ -49,7 +50,7 @@ Backend đầy đủ (`src/Web/Endpoints/Moderation.cs`, role `Administrator`). 
 
 ## 🟠 C. Thiếu hoàn toàn (BE có, FE chưa có API lẫn UI)
 
-- [ ] **Email verify-token** (S): `POST /Auth/verify-email` — có "resend verification" nhưng chưa có UI nhập token / consume link verify.
+- [x] **Email verify-token** (S): `POST /Auth/verify-email` ĐÃ wire (`d8d407e`) — nhập token ở Settings + trang `/verify-email` consume link.
 - [ ] **FCM push** (M): `POST /Auth/device-token` — chưa wire (cần FCM SDK + registration).
 - [ ] **Media session mgmt** (M): `GET /media/participants` ĐÃ wire (seed in-call set, `17f5a71`); `GET .../media/status` + `DELETE .../media` (host end-call) ĐÃ wire (`3ee9655`).
 - [x] **Feed live comments/reactions (FE)** — ĐÃ xong: trang post detail (`508e3d5`) + feed list (`f664db7`). Cả list lẫn detail đều live.
