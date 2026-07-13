@@ -1,0 +1,99 @@
+<div class="settings-wrap">
+  <header class="settings-head">
+    <h1>Settings</h1>
+    <p class="muted">Manage your account, security, and sessions.</p>
+  </header>
+
+  <!-- Email verification -->
+  <section class="card section">
+    <div class="section-head">
+      <h2>Email</h2>
+      @if (user()?.isEmailConfirmed) {
+        <span class="pill pill-ok"><app-icon name="check" [size]="14" /> Verified</span>
+      } @else {
+        <span class="pill pill-warn">Unverified</span>
+      }
+    </div>
+    <p class="muted">{{ user()?.email }}</p>
+    @if (!user()?.isEmailConfirmed) {
+      <button class="btn btn-secondary btn-sm" type="button" (click)="resendVerification()">Resend verification</button>
+      <form class="verify-form" [formGroup]="verifyForm" (ngSubmit)="verifyToken()">
+        <label class="field">
+          <span>Verification code</span>
+          <input type="text" formControlName="token" placeholder="Paste the code from your email" autocomplete="one-time-code" />
+        </label>
+        <button class="btn btn-primary btn-sm" type="submit" [disabled]="verifyForm.invalid">Verify</button>
+      </form>
+    }
+    @if (verifyMsg()) {
+      <p class="inline-msg">{{ verifyMsg() }}</p>
+    }
+  </section>
+
+  <!-- Change password -->
+  <section class="card section">
+    <h2>Change password</h2>
+    <form class="settings-form" [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+      <label class="field">
+        <span>Current password</span>
+        <input type="password" formControlName="currentPassword" autocomplete="current-password" />
+      </label>
+      <label class="field">
+        <span>New password</span>
+        <input type="password" formControlName="newPassword" autocomplete="new-password" />
+      </label>
+      <label class="field">
+        <span>Confirm new password</span>
+        <input type="password" formControlName="confirm" autocomplete="new-password" />
+      </label>
+      @if (pwMsg()) {
+        <p class="inline-msg" [class.err]="pwMsg()!.kind === 'err'" [class.ok]="pwMsg()!.kind === 'ok'">{{ pwMsg()!.text }}</p>
+      }
+      <button class="btn btn-primary btn-sm" type="submit" [disabled]="passwordForm.invalid">Update password</button>
+    </form>
+  </section>
+
+  <!-- Change email -->
+  <section class="card section">
+    <h2>Change email</h2>
+    <form class="settings-form" [formGroup]="emailForm" (ngSubmit)="changeEmail()">
+      <label class="field">
+        <span>New email</span>
+        <input type="email" formControlName="newEmail" autocomplete="email" />
+      </label>
+      <label class="field">
+        <span>Confirm with password</span>
+        <input type="password" formControlName="password" autocomplete="current-password" />
+      </label>
+      @if (emailMsg()) {
+        <p class="inline-msg" [class.err]="emailMsg()!.kind === 'err'" [class.ok]="emailMsg()!.kind === 'ok'">{{ emailMsg()!.text }}</p>
+      }
+      <button class="btn btn-primary btn-sm" type="submit" [disabled]="emailForm.invalid">Update email</button>
+    </form>
+  </section>
+
+  <!-- Active sessions -->
+  <section class="card section">
+    <div class="section-head">
+      <h2>Active sessions</h2>
+      @if (sessions().length) {
+        <button class="btn btn-ghost btn-sm" type="button" (click)="revokeAll()">Sign out everywhere</button>
+      }
+    </div>
+    @if (!sessions().length) {
+      <p class="muted">No other active sessions.</p>
+    } @else {
+      <ul class="sessions">
+        @for (s of sessions(); track s.id) {
+          <li>
+            <div class="session-info">
+              <span class="session-device">{{ s.deviceInfo ?? 'Device' }}</span>
+              <span class="muted session-meta">{{ s.ipAddress ?? '' }} · last active {{ time(s.lastActiveAt) }}</span>
+            </div>
+            <button class="btn btn-ghost btn-sm" type="button" (click)="revokeSession(s.id)" aria-label="Revoke session">Revoke</button>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+</div>

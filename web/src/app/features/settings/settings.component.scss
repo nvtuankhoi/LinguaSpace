@@ -1,0 +1,45 @@
+.settings-wrap { display: flex; flex-direction: column; gap: var(--ls-space-4); max-width: 560px; }
+
+.settings-head h1 { font-size: var(--ls-text-title); margin: 0 0 var(--ls-space-1); }
+.settings-head p { margin: 0; }
+
+.section { display: flex; flex-direction: column; gap: var(--ls-space-3); }
+.section h2 { font-size: var(--ls-text-subtitle); margin: 0; }
+.section-head { display: flex; align-items: center; justify-content: space-between; gap: var(--ls-space-2); }
+.section-head h2 { margin: 0; }
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: var(--ls-weight-bold);
+  padding: 3px 10px;
+  border-radius: var(--ls-radius-pill);
+}
+.pill-ok { background: color-mix(in oklch, var(--ls-success) 16%, transparent); color: var(--ls-success); }
+.pill-warn { background: color-mix(in oklch, var(--ls-warning, var(--ls-primary)) 16%, transparent); color: var(--ls-warning, var(--ls-primary)); }
+
+.settings-form { display: flex; flex-direction: column; gap: var(--ls-space-3); }
+
+// Inline verification-code entry: input grows, Verify button stays compact.
+.verify-form { display: flex; align-items: flex-end; gap: var(--ls-space-2); }
+.verify-form .field { flex: 1; min-width: 0; }
+
+.inline-msg { font-size: var(--ls-text-sm); margin: 0; color: var(--ls-muted); }
+.inline-msg.ok { color: var(--ls-success); }
+.inline-msg.err { color: var(--ls-danger); }
+
+.sessions { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--ls-space-2); }
+.sessions li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ls-space-3);
+  padding: var(--ls-space-3);
+  border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-md);
+}
+.session-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.session-device { font-weight: var(--ls-weight-medium); font-size: var(--ls-text-sm); }
+.session-meta { font-size: var(--ls-text-caption); }

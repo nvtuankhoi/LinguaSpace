@@ -3,11 +3,16 @@ import { CanActivateFn, Router } from '@angular/router';
 
 import { AuthStore } from './auth.store';
 
-/** Protects the authenticated app; sends logged-out users to login. */
-export const authGuard: CanActivateFn = () => {
+/** Protects the authenticated app; sends logged-out users to login, preserving
+ *  the intended URL (incl. query params) as ?returnUrl so deep links (e.g. the
+ *  email-verification link) survive the login round-trip. */
+export const authGuard: CanActivateFn = (_route, state) => {
   const auth = inject(AuthStore);
   const router = inject(Router);
-  return auth.isAuthenticated() ? true : router.createUrlTree(['/login']);
+  if (auth.isAuthenticated()) {
+    return true;
+  }
+  return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
 };
 
 /** Keeps logged-in users out of the public entry (landing / login / register). */

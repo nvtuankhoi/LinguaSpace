@@ -28,6 +28,12 @@ export const routes: Routes = [
     title: 'Reset password — LinguaSpace',
   },
   {
+    path: 'verify-email',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/auth/verify-email.component').then((m) => m.VerifyEmailComponent),
+    title: 'Verify email — LinguaSpace',
+  },
+  {
     path: 'app',
     canActivate: [authGuard],
     loadComponent: () => import('./layout/shell/shell.component').then((m) => m.ShellComponent),
