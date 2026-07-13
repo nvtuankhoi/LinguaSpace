@@ -116,6 +116,55 @@
       </section>
     }
 
+    <!-- Recent XP activity (daily breakdown from /Gamification/me/xp/history) -->
+    <section class="activity card">
+      <div class="activity-head">
+        <h2>Recent activity</h2>
+        <div class="period-toggle" role="group" aria-label="Activity period">
+          @for (p of xpHistoryPeriods; track p) {
+            <button
+              type="button"
+              class="period-btn"
+              [class.active]="xpHistoryPeriod() === p"
+              (click)="setXpPeriod(p)"
+            >{{ p === 'week' ? 'Week' : 'Month' }}</button>
+          }
+        </div>
+      </div>
+
+      @if (progressStatus() === 'error') {
+        <p class="muted">Could not load activity.</p>
+      } @else if (progressStatus() === 'loading' && !activityDays().length) {
+        <p class="muted">Loading activity…</p>
+      } @else if (!activityDays().length) {
+        <p class="muted">No activity yet this {{ xpHistoryPeriod() }}. Join a room or start chatting to earn XP!</p>
+      } @else {
+        <ul class="activity-days">
+          @for (day of activityDays(); track day.date) {
+            <li class="activity-day">
+              <div class="day-row">
+                <span class="day-label">{{ dayLabel(day.date) }}</span>
+                <span class="day-total">+{{ day.totalXp }} XP</span>
+              </div>
+              @if (day.transactions.length) {
+                <ul class="tx-list">
+                  @for (t of day.transactions; track $index) {
+                    <li class="tx">
+                      <span class="tx-reason">{{ t.reason }}</span>
+                      <span class="tx-meta">
+                        <span class="tx-amount">+{{ t.amount }}</span>
+                        <span class="tx-time muted">{{ time(t.earnedAt) }}</span>
+                      </span>
+                    </li>
+                  }
+                </ul>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
     <!-- Badges -->
     @if (badges().length) {
       <section class="badges card">

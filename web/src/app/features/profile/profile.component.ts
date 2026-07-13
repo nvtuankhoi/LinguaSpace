@@ -9,8 +9,8 @@ import { languageName } from '../../core/util/language';
 import { LANGUAGES } from '../../core/util/languages';
 import { AvatarComponent } from '../../shared/ui/avatar/avatar.component';
 import { IconComponent } from '../../shared/ui/icon/icon.component';
-import { UserLanguageDto } from '../../core/models';
-import { LanguageLevel, LanguageType } from '../../core/models/enums';
+import { UserLanguageDto, XpDailyDto } from '../../core/models';
+import { LanguageLevel, LanguageType, XpHistoryPeriod } from '../../core/models/enums';
 
 /** XP needed per level */
 const XP_PER_LEVEL = 500;
@@ -33,6 +33,9 @@ export class ProfileComponent {
   protected readonly saving = this.store.saving;
   protected readonly xp = this.gamification.myXp;
   protected readonly badges = this.gamification.myBadges;
+  protected readonly xpHistory = this.gamification.xpHistory;
+  protected readonly xpHistoryPeriod = this.gamification.xpHistoryPeriod;
+  protected readonly progressStatus = this.gamification.progressStatus;
 
   protected readonly xpPerLevel = XP_PER_LEVEL;
 
@@ -47,6 +50,15 @@ export class ProfileComponent {
   });
 
   protected readonly xpProgress = computed(() => (this.xpInLevel() / XP_PER_LEVEL) * 100);
+
+  /** Days of XP activity, newest day + newest transaction first (backend returns ascending). */
+  protected readonly activityDays = computed<XpDailyDto[]>(() =>
+    this.xpHistory()
+      .map((d) => ({ ...d, transactions: [...d.transactions].reverse() }))
+      .reverse(),
+  );
+
+  protected readonly xpHistoryPeriods: XpHistoryPeriod[] = ['week', 'month'];
 
   protected readonly nativeLanguages = computed<UserLanguageDto[]>(
     () => this.profile()?.languages.filter((l) => l.type === 'Native') ?? [],
@@ -128,5 +140,25 @@ export class ProfileComponent {
 
   protected async removeLang(l: UserLanguageDto): Promise<void> {
     await this.store.removeLanguage(l.id);
+  }
+
+  // ── XP activity ──
+
+  protected setXpPeriod(period: XpHistoryPeriod): void {
+    if (period === this.xpHistoryPeriod()) {
+      return;
+    }
+    void this.gamification.loadXpHistory(period);
+  }
+
+  /** Friendly label for a `YYYY-MM-DD` day bucket: Today / Yesterday / weekday + date. */
+  protected dayLabel(date: string): string {
+    const d = new Date(`${date}T00:00:00`);
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diffDays = Math.round((startOfToday.getTime() - d.getTime()) / 86_400_000);
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   }
 }

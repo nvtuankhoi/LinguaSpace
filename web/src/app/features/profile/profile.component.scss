@@ -177,6 +177,38 @@
 }
 .badge-date { font-size: 10px; color: var(--ls-muted); }
 
+/* ---- XP activity ---- */
+.activity { display: flex; flex-direction: column; gap: var(--ls-space-3); }
+.activity h2 { font-size: var(--ls-text-subtitle); }
+.activity-head { display: flex; align-items: center; justify-content: space-between; gap: var(--ls-space-3); }
+
+.period-toggle { display: inline-flex; border: 1px solid var(--ls-border); border-radius: var(--ls-radius-pill); overflow: hidden; }
+.period-btn {
+  appearance: none; border: none; background: transparent; color: var(--ls-muted);
+  font-size: var(--ls-text-caption); font-weight: var(--ls-weight-medium);
+  padding: 4px var(--ls-space-3); cursor: pointer;
+  transition: background var(--ls-duration-base) var(--ls-ease-out), color var(--ls-duration-base) var(--ls-ease-out);
+}
+.period-btn:hover { color: var(--ls-ink); }
+.period-btn.active { background: var(--ls-primary); color: var(--ls-on-primary); }
+
+.activity-days,
+.tx-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.tx-list { gap: 2px; }
+.activity-day { display: flex; flex-direction: column; gap: var(--ls-space-1); padding: var(--ls-space-2) 0; border-bottom: 1px solid var(--ls-border); }
+.activity-day:last-child { border-bottom: none; }
+
+.day-row, .tx { display: flex; justify-content: space-between; gap: var(--ls-space-3); }
+.day-row { align-items: baseline; }
+.tx { align-items: center; font-size: var(--ls-text-sm); padding-inline-start: var(--ls-space-3); }
+.day-label { font-weight: var(--ls-weight-semibold); color: var(--ls-ink); }
+.day-total { font-weight: var(--ls-weight-semibold); color: var(--ls-primary); font-size: var(--ls-text-sm); }
+
+.tx-reason { color: var(--ls-ink-soft); }
+.tx-meta { display: inline-flex; align-items: baseline; gap: var(--ls-space-2); }
+.tx-amount { font-weight: var(--ls-weight-semibold); color: var(--ls-success); }
+.tx-time { font-size: var(--ls-text-caption); }
+
 /* ---- Languages ---- */
 .langs { display: flex; flex-direction: column; gap: var(--ls-space-3); }
 .langs h2 { font-size: var(--ls-text-subtitle); }
