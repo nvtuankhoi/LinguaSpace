@@ -1,0 +1,73 @@
+<div class="composer card">
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <div class="type-toggle" role="group" aria-label="Post type">
+      @for (t of postTypes; track t.value) {
+        <button
+          class="type-toggle-btn"
+          [class.active]="form.controls.postType.value === t.value"
+          type="button"
+          (click)="selectType(t.value)"
+        >
+          {{ t.label }}
+        </button>
+      }
+    </div>
+
+    <div class="textarea-wrap">
+      <textarea
+        formControlName="content"
+        [rows]="rows()"
+        [placeholder]="contentPlaceholder()"
+        maxlength="1000"
+        (input)="onContentInput($event)"
+      ></textarea>
+      @if (charCount() > 800) {
+        <span class="char-count" [class.warn]="charCount() > 950" aria-live="polite">
+          {{ 1000 - charCount() }}
+        </span>
+      }
+    </div>
+
+    @if (isVocab()) {
+      <div class="composer-row">
+        <label class="select-field grow">
+          <span class="muted">Meaning / translation <span class="required">*</span></span>
+          <input type="text" formControlName="backText" placeholder="What it means" maxlength="500" />
+        </label>
+        <label class="select-field">
+          <span class="muted">Pronunciation</span>
+          <input type="text" formControlName="pronunciation" placeholder="romaji / pinyin / IPA" maxlength="120" />
+        </label>
+        <label class="select-field grow">
+          <span class="muted">Example sentence</span>
+          <input type="text" formControlName="example" placeholder="Optional" maxlength="500" />
+        </label>
+      </div>
+    }
+
+    <div class="composer-row">
+      <label class="select-field">
+        <span class="muted">Language</span>
+        <select formControlName="languageCode">
+          <option value="">Any language</option>
+          @for (lang of languages; track lang.code) {
+            <option [value]="lang.code">{{ lang.name }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="select-field grow">
+        <span class="muted">Tags</span>
+        <input type="text" formControlName="tags" placeholder="grammar, vocab, pronunciation…" maxlength="120" />
+      </label>
+
+      <button
+        class="btn btn-primary"
+        type="submit"
+        [disabled]="sending() || form.controls.content.invalid || (isVocab() && !form.controls.backText.value.trim())"
+      >
+        {{ sending() ? 'Posting…' : 'Post' }}
+      </button>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,69 @@
+:host { display: block; }
+
+.composer { padding: var(--ls-space-4); }
+.composer form { display: flex; flex-direction: column; gap: var(--ls-space-3); }
+
+// ---- Post-type segmented toggle (mirrors feed.component .tabs/.tab; component-scoped) ----
+.type-toggle {
+  display: inline-flex;
+  gap: var(--ls-space-1);
+  align-self: flex-start;
+  background: var(--ls-surface-strong);
+  border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-md);
+  padding: var(--ls-space-1);
+}
+.type-toggle-btn {
+  border: 0;
+  background: transparent;
+  color: var(--ls-muted);
+  font-weight: var(--ls-weight-semibold);
+  font-size: var(--ls-text-sm);
+  padding: var(--ls-space-2) var(--ls-space-4);
+  border-radius: var(--ls-radius-sm);
+  cursor: pointer;
+  transition: background var(--ls-duration-fast) var(--ls-ease-out),
+              color var(--ls-duration-fast) var(--ls-ease-out);
+}
+.type-toggle-btn:hover { color: var(--ls-ink); }
+.type-toggle-btn.active { background: var(--ls-bg); color: var(--ls-ink); }
+
+.required { color: var(--ls-danger); }
+
+// ---- Textarea with char counter overlay ----
+.textarea-wrap { position: relative; }
+.textarea-wrap textarea {
+  resize: none;
+  transition: rows var(--ls-duration-base) var(--ls-ease-out),
+              border-color var(--ls-duration-base) var(--ls-ease-out),
+              box-shadow var(--ls-duration-base) var(--ls-ease-out);
+}
+
+.char-count {
+  position: absolute;
+  bottom: 10px;
+  right: 12px;
+  font-size: var(--ls-text-caption);
+  color: var(--ls-muted);
+  pointer-events: none;
+  transition: color var(--ls-duration-fast) var(--ls-ease-out);
+}
+.char-count.warn { color: var(--ls-warning); font-weight: var(--ls-weight-semibold); }
+
+// ---- Bottom row ----
+.composer-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--ls-space-3);
+  flex-wrap: wrap;
+}
+.select-field { display: flex; flex-direction: column; gap: var(--ls-space-1); }
+.select-field > span { font-size: var(--ls-text-caption); color: var(--ls-muted); }
+.select-field.grow { flex: 1 1 160px; }
+.select-field select,
+.select-field input { width: 100%; }
+.composer-row .btn { margin-inline-start: auto; flex-shrink: 0; }
+
+@media (max-width: 560px) {
+  .composer-row .btn { width: 100%; margin-inline-start: 0; }
+}

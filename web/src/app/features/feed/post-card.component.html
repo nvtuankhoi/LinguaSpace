@@ -50,6 +50,13 @@
         <button class="btn btn-primary btn-sm" type="submit" [disabled]="editForm.invalid">Save</button>
       </div>
     </form>
+  } @else if (post().postType === 'VocabCard' && post().metadata?.backText) {
+    <app-vocab-card
+      [front]="post().content"
+      [back]="post().metadata!.backText!"
+      [pronunciation]="post().metadata?.pronunciation ?? null"
+      [example]="post().metadata?.example ?? null"
+    />
   } @else {
     <p class="post-body">{{ post().content }}</p>
   }

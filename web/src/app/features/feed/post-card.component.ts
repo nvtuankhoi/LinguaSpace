@@ -17,6 +17,7 @@ import { AvatarComponent } from '../../shared/ui/avatar/avatar.component';
 import { IconComponent } from '../../shared/ui/icon/icon.component';
 import { LanguageChipComponent } from '../../shared/ui/language-chip/language-chip.component';
 import { ReportDialogComponent } from '../../shared/ui/report-dialog/report-dialog.component';
+import { VocabCardComponent } from './vocab-card.component';
 
 interface ReactionOption {
   type: ReactionType;
@@ -26,7 +27,7 @@ interface ReactionOption {
 @Component({
   selector: 'app-post-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, AvatarComponent, LanguageChipComponent, IconComponent, ReportDialogComponent, ReactiveFormsModule],
+  imports: [RouterLink, AvatarComponent, LanguageChipComponent, IconComponent, ReportDialogComponent, VocabCardComponent, ReactiveFormsModule],
   templateUrl: './post-card.component.html',
   styleUrl: './post-card.component.scss',
 })

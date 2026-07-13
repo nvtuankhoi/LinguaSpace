@@ -13,6 +13,9 @@ export interface PostMetadataDto {
   linkUrl: string | null;
   linkTitle: string | null;
   linkDescription: string | null;
+  backText: string | null;
+  pronunciation: string | null;
+  example: string | null;
 }
 
 export interface CommentDto {
