@@ -1,6 +1,6 @@
 # BACKLOG — Frontend còn thiếu so với Backend
 
-Cập nhật: 2026-07-12 · Branch: `feat/edit-delete-flows`
+Cập nhật: 2026-07-13 · Branch: `feat/edit-delete-flows`
 
 Tham chiếu chuẩn: `design/api-contract.md` (Angular phải mirror backend).
 Legend: **S** = nhỏ (<~1h), **M** = vừa, **L** = lớn. Endpoint prefix `/api`.
@@ -23,6 +23,7 @@ Legend: **S** = nhỏ (<~1h), **M** = vừa, **L** = lớn. Endpoint prefix `/ap
 - **Media session mgmt** (`3ee9655`): host "End call" (nút danger trong AV bar) — `DELETE /Rooms/{id}/media` terminate LiveKit room, ngắt kết nối tất cả. Wire thêm `GET .../media/status` để reconcile in-call set sau end-call. Handle `RoomEvent.Disconnected` (host end-call / mất mạng / server kick) để reset UI AV thay vì kẹt "Live" stale. Đóng nốt item C media-session-mgmt (chỉ còn email verify-token + FCM).
 - **Feed list live** (`f664db7`): đưa realtime lên cả feed list (following + explore), không chỉ trang detail. Mỗi post loaded join post group; `PostEdited`/`PostDeleted`/`NewReaction(Post)`/`NewComment`/`CommentDeleted` patch thẳng `items` trong FeedStore. Hoàn thiện story realtime feed end-to-end (list + detail).
 - **Email verification UI** (`d8d407e`): wire `POST /Auth/verify-email` — nhập token thủ công ở Settings (input + Verify, refresh `isEmailConfirmed`) + trang `/verify-email` consume link từ email (auto-verify). authGuard giữ `?returnUrl` để click link lúc chưa login round-trip token qua login (guard open-redirect). Đóng item C email-verify (chỉ còn FCM).
+- **Reaction remove broadcast** (`aff2b40`, backend): un-react giờ push `NewReaction`(likeCount giảm) qua post-group, để viewer khác (và actor) thấy count giảm live thay vì kẹt stale tới reload. `RemoveReactionCommand` inject `INotificationService` + broadcast inline sau save (mirror pattern `DeletePost` cho delete, payload y hệt `NewReaction` của add). FE không đổi — đã apply `NewReaction` tuyệt đối. Đóng nốt gap cuối của story reaction realtime.
 
 ---
 
