@@ -1,3 +1,5 @@
+using LinguaSpace.Application.Common;
+using LinguaSpace.Application.Common.Interfaces;
 using LinguaSpace.Application.Common.Models;
 using LinguaSpace.Application.Feed.Commands.AddReaction;
 using LinguaSpace.Application.Feed.Commands.CreateComment;
@@ -15,6 +17,7 @@ using LinguaSpace.Application.Feed.Queries.GetPostComments;
 using LinguaSpace.Application.Feed.Queries.GetPostReactions;
 using LinguaSpace.Application.Feed.Queries.GetUserPosts;
 using LinguaSpace.Application.Feed.Queries.SearchPosts;
+using LinguaSpace.Web.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -37,6 +40,7 @@ public class Feed : IEndpointGroup
         group.MapGet(GetPostReactions, "posts/{postId}/reactions");
 
         group.MapPost(CreatePost, "posts").RequireAuthorization();
+        group.MapPost(UploadPostMedia, "posts/media").RequireAuthorization();
         group.MapPut(UpdatePost, "posts/{postId}").RequireAuthorization();
         group.MapDelete(DeletePost, "posts/{postId}").RequireAuthorization();
 
@@ -166,6 +170,50 @@ public class Feed : IEndpointGroup
         int postId = await sender.Send(command);
         return TypedResults.Created($"/api/Feed/posts/{postId}", postId);
     }
+
+    // ─── POST /api/Feed/posts/media ──────────────────────────────────────────
+
+    [EndpointSummary("Upload media for a post")]
+    [EndpointDescription(
+        "Accepts up to 4 images or short videos (jpg, jpeg, png, webp, gif, mp4, webm). " +
+        "Images ≤ 5 MB, videos ≤ 50 MB. Returns the public URLs to include in CreatePost.mediaUrls.")]
+    [ProducesResponseType(typeof(IList<UploadedFile>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [RequestSizeLimit(60_000_000)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 60_000_000)]
+    public static async Task<Results<Ok<IList<UploadedFile>>, BadRequest<ProblemDetails>>> UploadPostMedia(
+        IFormFileCollection files,
+        IStorageService storage,
+        IUser currentUser,
+        CancellationToken cancellationToken)
+    {
+        if (files.Count is 0 or > 4)
+        {
+            return Reject("Provide between 1 and 4 files.");
+        }
+
+        string userId = currentUser.Id ?? throw new UnauthorizedAccessException();
+
+        var uploaded = new List<UploadedFile>(files.Count);
+        foreach (IFormFile file in files)
+        {
+            string? error = MediaUploadRules.ValidateMedia(file);
+            if (error is not null)
+            {
+                return Reject(error);
+            }
+
+            await using Stream stream = file.OpenReadStream();
+            UploadedFile stored = await storage.UploadAsync(
+                "posts", userId, stream, file.FileName, file.ContentType, cancellationToken);
+            uploaded.Add(stored);
+        }
+
+        return TypedResults.Ok<IList<UploadedFile>>(uploaded);
+    }
+
+    private static BadRequest<ProblemDetails> Reject(string detail) =>
+        TypedResults.BadRequest(new ProblemDetails { Title = "Invalid upload", Detail = detail });
 
     // ─── PUT /api/Feed/posts/{postId} ─────────────────────────────────────────
 

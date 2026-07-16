@@ -35,7 +35,8 @@ public class GetExploreQueryHandler : IRequestHandler<GetExploreQuery, CursorPag
 
         IQueryable<Post> query = _context.Posts
             .Where(p => !p.IsDeleted)
-            .Include(p => p.Tags);
+            .Include(p => p.Tags)
+            .Include(p => p.MediaItems);
 
         if (!string.IsNullOrWhiteSpace(request.LanguageCode))
         {
@@ -69,7 +70,8 @@ public class GetExploreQueryHandler : IRequestHandler<GetExploreQuery, CursorPag
                 p.LikeCount,
                 p.CommentCount,
                 p.Created,
-                p.Tags.Select(t => t.Tag).ToList()))
+                p.Tags.Select(t => t.Tag).ToList(),
+                p.MediaItems.OrderBy(m => m.SortOrder).Select(m => new MediaItemDto(m.Id, m.Url, m.SortOrder)).ToList()))
             .ToList();
 
         bool hasMore = raw.Count > pageSize;

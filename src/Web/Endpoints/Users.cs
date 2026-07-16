@@ -1,3 +1,5 @@
+using LinguaSpace.Application.Common;
+using LinguaSpace.Application.Common.Interfaces;
 using LinguaSpace.Application.Common.Models;
 using LinguaSpace.Application.Users.Commands.AddLanguage;
 using LinguaSpace.Application.Users.Commands.BlockUser;
@@ -22,6 +24,7 @@ using LinguaSpace.Application.Users.Queries.GetMyLanguages;
 using LinguaSpace.Application.Users.Queries.GetUserProfile;
 using LinguaSpace.Application.Users.Queries.SearchUsers;
 using LinguaSpace.Domain.Enums;
+using LinguaSpace.Web.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -43,6 +46,7 @@ public class Users : IEndpointGroup
 
         group.MapPut(UpdateProfile, "me/profile").RequireAuthorization();
         group.MapPut(UpdateAvatar, "me/avatar").RequireAuthorization();
+        group.MapPost(UploadAvatar, "me/avatar/upload").RequireAuthorization();
         group.MapPost(AddLanguage, "me/languages").RequireAuthorization();
         group.MapPut(UpdateLanguage, "me/languages/{languageId}").RequireAuthorization();
         group.MapDelete(RemoveLanguage, "me/languages/{languageId}").RequireAuthorization();
@@ -116,6 +120,36 @@ public class Users : IEndpointGroup
         await sender.Send(command);
         return TypedResults.NoContent();
     }
+
+    [EndpointSummary("Upload avatar image")]
+    [EndpointDescription(
+        "Stores a single avatar image (jpg, jpeg, png, webp, gif; ≤ 5 MB) and returns its public URL. " +
+        "Pass the returned url to UpdateProfile.avatarUrl to persist it on the profile.")]
+    [ProducesResponseType(typeof(UploadedFile), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [RequestSizeLimit(10_000_000)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 10_000_000)]
+    public static async Task<Results<Ok<UploadedFile>, BadRequest<ProblemDetails>>> UploadAvatar(
+        IFormFile file,
+        IStorageService storage,
+        IUser currentUser,
+        CancellationToken cancellationToken)
+    {
+        string? error = MediaUploadRules.ValidateAvatar(file);
+        if (error is not null)
+        {
+            return Reject(error);
+        }
+
+        string userId = currentUser.Id ?? throw new UnauthorizedAccessException();
+        await using Stream stream = file.OpenReadStream();
+        UploadedFile stored = await storage.UploadAsync(
+            "avatars", userId, stream, file.FileName, file.ContentType, cancellationToken);
+        return TypedResults.Ok(stored);
+    }
+
+    private static BadRequest<ProblemDetails> Reject(string detail) =>
+        TypedResults.BadRequest(new ProblemDetails { Title = "Invalid upload", Detail = detail });
 
     [EndpointSummary("Add language to profile")]
     [EndpointDescription("Adds a language with proficiency level to the authenticated user's profile.")]

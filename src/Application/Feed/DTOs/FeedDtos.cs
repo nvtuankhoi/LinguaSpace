@@ -10,7 +10,8 @@ public record PostSummaryDto(
     int LikeCount,
     int CommentCount,
     DateTimeOffset CreatedAt,
-    IList<string> Tags);
+    IList<string> Tags,
+    IList<MediaItemDto> MediaItems);
 
 public record PostDto(
     int Id,

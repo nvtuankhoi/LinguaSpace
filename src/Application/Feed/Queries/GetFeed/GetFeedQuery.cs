@@ -75,7 +75,8 @@ public class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, CursorPagedResu
 
         IQueryable<Post> query = _context.Posts
             .Where(p => followingIds.Contains(p.AuthorId) && !p.IsDeleted)
-            .Include(p => p.Tags);
+            .Include(p => p.Tags)
+            .Include(p => p.MediaItems);
 
         if (beforeCursor.HasValue)
         {
@@ -98,7 +99,8 @@ public class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, CursorPagedResu
                 p.LikeCount,
                 p.CommentCount,
                 p.Created,
-                p.Tags.Select(t => t.Tag).ToList()))
+                p.Tags.Select(t => t.Tag).ToList(),
+                p.MediaItems.OrderBy(m => m.SortOrder).Select(m => new MediaItemDto(m.Id, m.Url, m.SortOrder)).ToList()))
             .ToList();
 
         bool hasMore = raw.Count > pageSize;

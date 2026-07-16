@@ -36,7 +36,8 @@ public class SearchPostsQueryHandler : IRequestHandler<SearchPostsQuery, Paginat
         IQueryable<Post> query = _context.Posts
             .AsNoTracking()
             .Where(p => !p.IsDeleted)
-            .Include(p => p.Tags);
+            .Include(p => p.Tags)
+            .Include(p => p.MediaItems);
 
         if (!string.IsNullOrWhiteSpace(queryText))
         {
@@ -63,7 +64,8 @@ public class SearchPostsQueryHandler : IRequestHandler<SearchPostsQuery, Paginat
                 p.LikeCount,
                 p.CommentCount,
                 p.Created,
-                p.Tags.Select(t => t.Tag).ToList()))
+                p.Tags.Select(t => t.Tag).ToList(),
+                p.MediaItems.OrderBy(m => m.SortOrder).Select(m => new MediaItemDto(m.Id, m.Url, m.SortOrder)).ToList()))
             .ToList();
 
         return new PaginatedResult<PostSummaryDto>(
