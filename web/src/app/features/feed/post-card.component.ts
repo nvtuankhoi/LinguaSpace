@@ -156,6 +156,11 @@ export class PostCardComponent {
     return this.reactions.find((r) => r.type === type)?.emoji ?? '👍';
   }
 
+  /** Infers image vs video from the stored URL's extension (GUID filenames keep the ext). */
+  protected mediaKind(url: string): 'image' | 'video' {
+    return /\.(mp4|webm)$/i.test(url) ? 'video' : 'image';
+  }
+
   protected toggleComments(): void {
     if (this.showComments()) {
       this.showComments.set(false);

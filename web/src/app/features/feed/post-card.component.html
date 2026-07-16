@@ -61,6 +61,18 @@
     <p class="post-body">{{ post().content }}</p>
   }
 
+  @if (post().mediaItems.length) {
+    <div class="post-media" [class.single]="post().mediaItems.length === 1">
+      @for (m of post().mediaItems; track m.id) {
+        @if (mediaKind(m.url) === 'video') {
+          <video [src]="m.url" controls preload="metadata"></video>
+        } @else {
+          <img [src]="m.url" loading="lazy" alt="" />
+        }
+      }
+    </div>
+  }
+
   @if (post().tags.length) {
     <div class="tags">
       @for (t of post().tags; track t) {

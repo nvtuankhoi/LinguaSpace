@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 
 import { FeedStore } from '../../core/state/feed.store';
+import { MediaApi } from '../../core/api/media.api';
 import { LANGUAGES } from '../../core/util/languages';
-import { PostMetadataDto } from '../../core/models';
+import { PostMetadataDto, UploadedFileResponse } from '../../core/models';
 import { PostType } from '../../core/models/enums';
 
 @Component({
@@ -16,10 +18,14 @@ import { PostType } from '../../core/models/enums';
 export class ComposerComponent {
   private readonly fb = inject(FormBuilder);
   private readonly feed = inject(FeedStore);
+  private readonly mediaApi = inject(MediaApi);
 
   protected readonly sending = signal(false);
   protected readonly charCount = signal(0);
   protected readonly rows = signal(2);
+  protected readonly uploadingMedia = signal(false);
+  protected readonly mediaError = signal<string | null>(null);
+  protected readonly media = signal<UploadedFileResponse[]>([]);
 
   protected readonly languages = LANGUAGES;
   protected readonly postTypes: { value: PostType; label: string }[] = [
@@ -59,6 +65,39 @@ export class ComposerComponent {
     this.rows.set(estimatedRows);
   }
 
+  protected async onMediaSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    input.value = ''; // reset so the same file can be re-selected after removal
+    if (!files.length) {
+      return;
+    }
+    if (this.media().length + files.length > 4) {
+      this.mediaError.set('Maximum 4 media items per post.');
+      return;
+    }
+
+    this.mediaError.set(null);
+    this.uploadingMedia.set(true);
+    try {
+      const uploaded = await firstValueFrom(this.mediaApi.uploadPostMedia(files));
+      this.media.update((current) => [...current, ...uploaded]);
+    } catch {
+      this.mediaError.set('Upload failed. Please try again.');
+    } finally {
+      this.uploadingMedia.set(false);
+    }
+  }
+
+  protected removeMedia(index: number): void {
+    this.media.update((current) => current.filter((_, i) => i !== index));
+  }
+
+  /** Infers image vs video from the stored URL's extension (GUID filenames keep the ext). */
+  protected mediaKind(url: string): 'image' | 'video' {
+    return /\.(mp4|webm)$/i.test(url) ? 'video' : 'image';
+  }
+
   protected async submit(): Promise<void> {
     // Content is required for both; a vocab card also needs a meaning (back).
     const backMissing = this.isVocab() && !this.form.controls.backText.value.trim();
@@ -88,6 +127,7 @@ export class ComposerComponent {
         postType: value.postType,
         languageCode: value.languageCode || null,
         metadata,
+        mediaUrls: this.media().length ? this.media().map((m) => m.url) : undefined,
         tags: value.tags
           ? value.tags.split(',').map((t) => t.trim()).filter(Boolean).slice(0, 5)
           : undefined,
@@ -101,6 +141,7 @@ export class ComposerComponent {
         languageCode: '',
         tags: '',
       });
+      this.media.set([]);
       this.charCount.set(0);
       this.rows.set(2);
     } finally {

@@ -18,7 +18,7 @@
   } @else if (profile(); as p) {
     <form class="head card" [formGroup]="form" (ngSubmit)="save()">
       <div class="head-main">
-        <app-avatar [name]="p.displayName" [src]="p.avatarUrl" [online]="p.isOnline" [size]="88" />
+        <app-avatar [name]="p.displayName" [src]="avatarPreview() ?? p.avatarUrl" [online]="p.isOnline" [size]="88" />
         <div class="identity">
           @if (editing()) {
             <label class="field">
@@ -41,8 +41,16 @@
       @if (editing()) {
         <div class="edit-fields">
           <label class="field">
-            <span>Avatar URL</span>
-            <input type="text" formControlName="avatarUrl" placeholder="https://example.com/avatar.jpg" />
+            <span>Avatar</span>
+            <input
+              type="file"
+              accept="image/*"
+              [disabled]="uploadingAvatar()"
+              (change)="onAvatarSelected($event)"
+            />
+            @if (uploadingAvatar()) {
+              <span class="muted small">Uploading…</span>
+            }
           </label>
           <label class="field bio-edit">
             <span>Bio</span>

@@ -45,6 +45,37 @@
       </div>
     }
 
+    <div class="composer-row media-row">
+      <label class="select-field">
+        <span class="muted">Media <span class="small">({{ media().length }}/4)</span></span>
+        <input
+          type="file"
+          multiple
+          accept="image/*,video/*"
+          [disabled]="uploadingMedia() || media().length >= 4"
+          (change)="onMediaSelected($event)"
+        />
+      </label>
+      @if (mediaError()) {
+        <span class="media-error">{{ mediaError() }}</span>
+      }
+    </div>
+
+    @if (media().length) {
+      <div class="media-preview">
+        @for (m of media(); track m.url; let i = $index) {
+          <div class="media-thumb">
+            @if (mediaKind(m.url) === 'video') {
+              <video [src]="m.url" preload="metadata"></video>
+            } @else {
+              <img [src]="m.url" alt="" />
+            }
+            <button type="button" class="media-remove" (click)="removeMedia(i)" aria-label="Remove media">×</button>
+          </div>
+        }
+      </div>
+    }
+
     <div class="composer-row">
       <label class="select-field">
         <span class="muted">Language</span>
@@ -64,7 +95,7 @@
       <button
         class="btn btn-primary"
         type="submit"
-        [disabled]="sending() || form.controls.content.invalid || (isVocab() && !form.controls.backText.value.trim())"
+        [disabled]="sending() || uploadingMedia() || form.controls.content.invalid || (isVocab() && !form.controls.backText.value.trim())"
       >
         {{ sending() ? 'Posting…' : 'Post' }}
       </button>

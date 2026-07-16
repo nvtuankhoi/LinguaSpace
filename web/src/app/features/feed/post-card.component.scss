@@ -28,6 +28,25 @@ app-lang-chip { margin-inline-start: auto; }
 .tags { display: flex; flex-wrap: wrap; gap: var(--ls-space-2); }
 .tag { color: var(--ls-muted); font-size: var(--ls-text-sm); }
 
+// ---- Media gallery (images render as <img>, short videos as <video controls>) ----
+.post-media {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ls-space-2);
+}
+.post-media.single { grid-template-columns: 1fr; }
+.post-media img,
+.post-media video {
+  width: 100%;
+  border-radius: var(--ls-radius-md);
+  object-fit: cover;
+  background: var(--ls-surface-strong);
+}
+.post-media.single img,
+.post-media.single video { max-height: 520px; }
+.post-media:not(.single) img,
+.post-media:not(.single) video { aspect-ratio: 1; }
+
 // ---- Actions row ----
 .post-actions {
   display: flex;

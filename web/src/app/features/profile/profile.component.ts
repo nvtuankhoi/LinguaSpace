@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 
 import { ProfileStore } from '../../core/state/profile.store';
+import { MediaApi } from '../../core/api/media.api';
 import { GamificationStore } from '../../core/state/gamification.store';
 import { relativeTime } from '../../core/util/time';
 import { languageName } from '../../core/util/language';
@@ -26,6 +28,7 @@ export class ProfileComponent {
   protected readonly store = inject(ProfileStore);
   private readonly gamification = inject(GamificationStore);
   private readonly fb = inject(FormBuilder);
+  private readonly mediaApi = inject(MediaApi);
 
   protected readonly profile = this.store.profile;
   protected readonly status = this.store.status;
@@ -73,6 +76,13 @@ export class ProfileComponent {
     avatarUrl: [''],
   });
 
+  protected readonly uploadingAvatar = signal(false);
+  /** Live avatar preview bound to the form value while editing. */
+  protected readonly avatarPreview = computed(() => {
+    const url = this.form.controls.avatarUrl.value.trim();
+    return url || null;
+  });
+
   /** Tracks whether the edit form was hydrated from the loaded profile. */
   private readonly seeded = signal(false);
 
@@ -109,6 +119,25 @@ export class ProfileComponent {
       bio: value.bio.trim() ? value.bio.trim() : null,
       avatarUrl: value.avatarUrl.trim() ? value.avatarUrl.trim() : null,
     });
+  }
+
+  protected async onAvatarSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = ''; // reset so the same file can be re-selected
+    if (!file) {
+      return;
+    }
+
+    this.uploadingAvatar.set(true);
+    try {
+      const { url } = await firstValueFrom(this.mediaApi.uploadAvatar(file));
+      this.form.controls.avatarUrl.setValue(url);
+    } catch {
+      /* no preview update signals the failure */
+    } finally {
+      this.uploadingAvatar.set(false);
+    }
   }
 
   protected langName(code: string): string {

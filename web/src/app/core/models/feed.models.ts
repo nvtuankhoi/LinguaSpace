@@ -6,6 +6,12 @@ export interface MediaItemDto {
   sortOrder: number;
 }
 
+/** Returned by the upload endpoints: the public URL of the stored file + its content type. */
+export interface UploadedFileResponse {
+  url: string;
+  contentType: string;
+}
+
 export interface PostMetadataDto {
   audioUrl: string | null;
   durationSeconds: number | null;
@@ -54,6 +60,7 @@ export interface PostSummaryDto {
   commentCount: number;
   createdAt: string;
   tags: string[];
+  mediaItems: MediaItemDto[];
 }
 
 export interface ReactionDetailDto {

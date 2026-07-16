@@ -95,6 +95,7 @@ export const FeedStore = signalStore(
             commentCount: 0,
             createdAt: new Date().toISOString(),
             tags: req.tags ?? [],
+            mediaItems: (req.mediaUrls ?? []).map((url, i) => ({ id: i + 1, url, sortOrder: i })),
           };
           patchState(store, { items: [summary, ...store.items()] });
         } catch {
@@ -148,6 +149,7 @@ export const FeedStore = signalStore(
             commentCount: post.commentCount,
             createdAt: post.createdAt,
             tags: post.tags,
+            mediaItems: post.mediaItems,
           };
           patchState(store, { items: [summary, ...store.items()] });
         } catch {
