@@ -40,7 +40,10 @@ public class Feed : IEndpointGroup
         group.MapGet(GetPostReactions, "posts/{postId}/reactions");
 
         group.MapPost(CreatePost, "posts").RequireAuthorization();
-        group.MapPost(UploadPostMedia, "posts/media").RequireAuthorization();
+        // .NET 10 auto-enables antiforgery on form (IFormFile) endpoints by default;
+        // this API authenticates via Bearer JWT (refresh cookie is SameSite=Strict),
+        // so CSRF protection doesn't apply — opt the upload endpoints out explicitly.
+        group.MapPost(UploadPostMedia, "posts/media").RequireAuthorization().DisableAntiforgery();
         group.MapPut(UpdatePost, "posts/{postId}").RequireAuthorization();
         group.MapDelete(DeletePost, "posts/{postId}").RequireAuthorization();
 

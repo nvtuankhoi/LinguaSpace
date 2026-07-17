@@ -46,7 +46,7 @@ public class Users : IEndpointGroup
 
         group.MapPut(UpdateProfile, "me/profile").RequireAuthorization();
         group.MapPut(UpdateAvatar, "me/avatar").RequireAuthorization();
-        group.MapPost(UploadAvatar, "me/avatar/upload").RequireAuthorization();
+        group.MapPost(UploadAvatar, "me/avatar/upload").RequireAuthorization().DisableAntiforgery(); // JWT API → antiforgery N/A
         group.MapPost(AddLanguage, "me/languages").RequireAuthorization();
         group.MapPut(UpdateLanguage, "me/languages/{languageId}").RequireAuthorization();
         group.MapDelete(RemoveLanguage, "me/languages/{languageId}").RequireAuthorization();
