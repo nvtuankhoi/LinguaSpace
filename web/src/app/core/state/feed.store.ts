@@ -83,7 +83,7 @@ export const FeedStore = signalStore(
 
       async createPost(req: CreatePostRequest): Promise<void> {
         try {
-          const { postId } = await firstValueFrom(feedApi.createPost(req));
+          const postId = await firstValueFrom(feedApi.createPost(req));
           const summary: PostSummaryDto = {
             id: postId,
             authorId: auth.user()?.userId ?? 'me',

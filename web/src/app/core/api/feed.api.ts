@@ -60,11 +60,13 @@ export class FeedApi {
   }
 
   createPost(req: CreatePostRequest) {
-    return this.http.post<{ postId: number }>(`${this.base}/Feed/posts`, req, { withCredentials: true });
+    // Backend CreatePost returns Created<int> → a bare postId in the body, not { postId }.
+    return this.http.post<number>(`${this.base}/Feed/posts`, req, { withCredentials: true });
   }
 
   addComment(postId: number, req: CreateCommentRequest) {
-    return this.http.post<{ commentId: number }>(`${this.base}/Feed/posts/${postId}/comments`, req, {
+    // Backend CreateComment returns Created<int> → a bare commentId in the body, not { commentId }.
+    return this.http.post<number>(`${this.base}/Feed/posts/${postId}/comments`, req, {
       withCredentials: true,
     });
   }
