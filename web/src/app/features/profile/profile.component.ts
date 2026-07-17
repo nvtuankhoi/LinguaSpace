@@ -77,11 +77,11 @@ export class ProfileComponent {
   });
 
   protected readonly uploadingAvatar = signal(false);
-  /** Live avatar preview bound to the form value while editing. */
-  protected readonly avatarPreview = computed(() => {
-    const url = this.form.controls.avatarUrl.value.trim();
-    return url || null;
-  });
+  /** Live avatar preview while editing. Mirrors the form's avatarUrl control — but
+   *  ReactiveForm control values are plain properties, not signals, so a computed()
+   *  reading `.value` wouldn't re-run on upload. A writable signal we set explicitly
+   *  keeps the header preview reactive. */
+  protected readonly avatarPreview = signal<string | null>(null);
 
   /** Tracks whether the edit form was hydrated from the loaded profile. */
   private readonly seeded = signal(false);
@@ -104,6 +104,7 @@ export class ProfileComponent {
     const p = this.profile();
     if (!p) return;
     this.form.setValue({ displayName: p.displayName, bio: p.bio ?? '', avatarUrl: p.avatarUrl ?? '' });
+    this.avatarPreview.set(p.avatarUrl ?? null);
     this.seeded.set(true);
     this.store.beginEdit();
   }
@@ -133,6 +134,7 @@ export class ProfileComponent {
     try {
       const { url } = await firstValueFrom(this.mediaApi.uploadAvatar(file));
       this.form.controls.avatarUrl.setValue(url);
+      this.avatarPreview.set(url);
     } catch {
       /* no preview update signals the failure */
     } finally {
