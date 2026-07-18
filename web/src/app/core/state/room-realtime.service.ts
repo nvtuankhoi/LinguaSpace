@@ -135,9 +135,9 @@ export class RoomRealtimeService {
 
   async send(roomId: number, content: string): Promise<void> {
     if (environment.useMock) {
-      const res = await firstValueFrom(this.api.sendMessage(roomId, { content }));
+      const messageId = await firstValueFrom(this.api.sendMessage(roomId, { content }));
       this.message$.next({
-        messageId: res.messageId,
+        messageId,
         senderId: this.auth.user()?.userId ?? 'me',
         senderDisplayName: this.auth.user()?.displayName ?? 'You',
         content,

@@ -66,7 +66,7 @@ export const ProfileStore = signalStore(
           return;
         }
         try {
-          const { languageId } = await firstValueFrom(usersApi.addLanguage(req));
+          const languageId = await firstValueFrom(usersApi.addLanguage(req));
           patchState(store, {
             profile: {
               ...profile,

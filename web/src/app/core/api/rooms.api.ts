@@ -89,7 +89,8 @@ export class RoomsApi {
   }
 
   sendMessage(id: number, req: SendMessageRequest) {
-    return this.http.post<{ messageId: number }>(`${this.base}/Rooms/${id}/messages`, req, { withCredentials: true });
+    // Backend SendMessage returns Created<int> → a bare messageId, not { messageId }.
+    return this.http.post<number>(`${this.base}/Rooms/${id}/messages`, req, { withCredentials: true });
   }
 
   deleteMessage(roomId: number, messageId: number) {

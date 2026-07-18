@@ -36,7 +36,8 @@ export class UsersApi {
   }
 
   addLanguage(req: AddLanguageRequest) {
-    return this.http.post<{ languageId: number }>(`${this.base}/Users/me/languages`, req, {
+    // Backend AddLanguage returns Created<int> → a bare languageId, not { languageId }.
+    return this.http.post<number>(`${this.base}/Users/me/languages`, req, {
       withCredentials: true,
     });
   }

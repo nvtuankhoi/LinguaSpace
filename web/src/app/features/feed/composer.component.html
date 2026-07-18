@@ -68,6 +68,7 @@
             @if (mediaKind(m.url) === 'video') {
               <video [src]="m.url" preload="metadata"></video>
             } @else {
+              <!-- impeccable-disable-next-line broken-image -- Angular [src] property binding; the static parser reads it as a missing literal src. m.url always comes from a completed upload (media() entries), never null. -->
               <img [src]="m.url" alt="" />
             }
             <button type="button" class="media-remove" (click)="removeMedia(i)" aria-label="Remove media">×</button>

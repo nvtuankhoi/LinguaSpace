@@ -182,6 +182,7 @@
             <li class="badge-item" [title]="b.description ?? b.name">
               <div class="badge-icon">
                 @if (b.iconUrl) {
+                  <!-- impeccable-disable-next-line broken-image -- Angular [src] property binding; the static parser reads it as a missing literal src. URL is null-guarded by this @if. -->
                   <img [src]="b.iconUrl" [alt]="b.name" width="28" height="28" />
                 } @else {
                   <app-icon name="sparkles" [size]="20" />
@@ -224,12 +225,14 @@
                 <span class="lang-name">{{ langName(l.languageCode) }}</span>
                 <select
                   class="lang-level-select"
-                  [value]="l.level ?? 'A1'"
                   (change)="onLangLevelChange(l, $event)"
                   aria-label="Proficiency level"
                 >
                   @for (lv of levels; track lv) {
-                    <option [value]="lv">{{ lv }}</option>
+                    <!-- Uncontrolled select: drive initial selection via [selected] on the option
+                         (the browser honors it at render time). A [value] binding on the <select>
+                         itself races the @for options and falls back to A1 on optimistic inserts. -->
+                    <option [value]="lv" [selected]="lv === (l.level ?? 'A1')">{{ lv }}</option>
                   }
                 </select>
                 <button class="lang-remove" type="button" (click)="removeLang(l)" aria-label="Remove language">×</button>
