@@ -1,0 +1,126 @@
+<div class="profile-wrap">
+  @if (status() === 'loading') {
+    <p class="muted state">Loading profile…</p>
+  } @else if (status() === 'error' || !profile()) {
+    <div class="card state">
+      <p>User not found.</p>
+    </div>
+  } @else {
+    @let p = profile()!;
+    <header class="profile-head card">
+      <div class="head-main">
+        <app-avatar [name]="p.displayName" [src]="p.avatarUrl" [online]="p.isOnline" [size]="80" />
+        <div class="head-info">
+          <h1>{{ p.displayName }}</h1>
+          <div class="social-stats muted">
+            <span><strong>{{ p.followerCount }}</strong> followers</span>
+            <span><strong>{{ p.followingCount }}</strong> following</span>
+            <span><strong>{{ p.friendCount }}</strong> friends</span>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-secondary" type="button" (click)="message()">
+          <app-icon name="messages" [size]="16" /> Message
+        </button>
+
+        @if (p.isFollowedByMe) {
+          <button class="btn btn-secondary" type="button" (click)="unfollow()">Unfollow</button>
+        } @else {
+          <button class="btn btn-primary" type="button" (click)="follow()">Follow</button>
+        }
+
+        @if (p.isFriend) {
+          <button class="btn btn-secondary" type="button" (click)="removeFriend()">Unfriend</button>
+        } @else if (p.hasOutgoingFriendRequest) {
+          <button class="btn btn-secondary" type="button" disabled>Request Sent</button>
+        } @else {
+          <button class="btn btn-secondary" type="button" (click)="addFriend()">
+            <app-icon name="profile" [size]="16" /> Add Friend
+          </button>
+        }
+
+        @if (p.isBlockedByMe) {
+          <button class="btn btn-danger" type="button" (click)="unblockUser()">Unblock</button>
+        } @else {
+          <button class="btn btn-ghost" type="button" (click)="blockUser()" aria-label="Block user">
+            <app-icon name="slash" [size]="16" />
+          </button>
+        }
+
+        <button class="btn btn-ghost" type="button" (click)="showReport.set(true)" aria-label="Report user">
+          <app-icon name="flag" [size]="16" />
+        </button>
+      </div>
+    </header>
+
+    @if (p.bio) {
+      <div class="bio card">
+        <p>{{ p.bio }}</p>
+      </div>
+    }
+
+    <!-- XP & Badges -->
+    @if (xp()) {
+      <div class="gamification card">
+        <div class="stats-grid">
+          <div class="stat">
+            <span class="stat-value">{{ xp()!.totalXp.toLocaleString() }}</span>
+            <span class="stat-label muted">Total XP</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value streak">
+              <app-icon name="flame" [size]="20" /> {{ xp()!.currentStreak }}
+            </span>
+            <span class="stat-label muted">Day Streak</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">#{{ xp()!.rank }}</span>
+            <span class="stat-label muted">Leaderboard Rank</span>
+          </div>
+        </div>
+        
+        @if (badges().length) {
+          <div class="badges">
+            <h3 class="badges-title">Badges</h3>
+            <div class="badges-grid">
+              @for (b of badges(); track b.badgeId) {
+                <div class="badge-item" [title]="b.description">
+                  <div class="badge-icon">
+                    <app-icon name="sparkles" [size]="24" />
+                  </div>
+                  <span class="badge-name">{{ b.name }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Posts Feed -->
+    <div class="posts">
+      <h2 class="section-title">Recent Posts</h2>
+      @if (!posts().length) {
+        <div class="empty card">
+          <p class="muted">No posts yet.</p>
+        </div>
+      } @else {
+        <div class="list">
+          @for (post of posts(); track post.id) {
+            <app-post-card [post]="post" />
+          }
+        </div>
+      }
+    </div>
+
+    @if (showReport()) {
+      <app-report-dialog
+        targetType="User"
+        [targetId]="p.userId"
+        [targetLabel]="p.displayName"
+        (closed)="showReport.set(false)"
+      />
+    }
+  }
+</div>

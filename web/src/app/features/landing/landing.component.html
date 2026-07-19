@@ -1,0 +1,116 @@
+<div class="landing">
+  <header class="nav ls-container">
+    <a class="brand" routerLink="/" aria-label="LinguaSpace home">
+      <app-icon name="sparkles" [size]="22" />
+      <span>LinguaSpace</span>
+    </a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+    </nav>
+    <div class="nav-actions">
+      <a class="btn btn-secondary" routerLink="/login">Log in</a>
+      <a class="btn btn-primary" routerLink="/register">Get started</a>
+    </div>
+  </header>
+
+  <!-- Hero (asymmetric split) -->
+  <section class="hero ls-container" aria-labelledby="hero-heading">
+    <div class="hero-copy">
+      <h1 id="hero-heading">
+        Talk with real people.
+        <span class="quiet">Grow at your own pace.</span>
+      </h1>
+      <p class="hero-sub muted">
+        Voice rooms, a practice-first feed, and direct messages for learners who want real
+        conversation, not streaks.
+      </p>
+      <a class="btn btn-primary hero-cta-btn" routerLink="/register">
+        Get started <app-icon name="arrow-right" [size]="18" />
+      </a>
+    </div>
+    <div class="hero-art">
+      <img src="/images/landing-room.png" width="1440" height="900" loading="eager"
+           alt="A LinguaSpace practice room: a video stage beside a live text chat." />
+    </div>
+  </section>
+
+  <!-- Stats strip -->
+  <section class="stats-strip" aria-label="Community stats">
+    <div class="ls-container stats-grid">
+      @for (s of stats; track s.label) {
+        <div class="stat">
+          <span class="stat-value">{{ s.value }}</span>
+          <span class="stat-label muted">{{ s.label }}</span>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- How it works (numbered narrative) -->
+  <section class="how ls-container" id="how" aria-labelledby="how-heading">
+    <h2 id="how-heading">How it works</h2>
+    <ol class="steps">
+      @for (step of steps; track step.title; let i = $index) {
+        <li class="step">
+          <span class="step-num" aria-hidden="true">{{ i + 1 }}</span>
+          <div>
+            <h3>{{ step.title }}</h3>
+            <p class="muted">{{ step.body }}</p>
+          </div>
+        </li>
+      }
+    </ol>
+  </section>
+
+  <!-- Feature deep-dive (zig-zag rows with real product screenshots) -->
+  <section class="features ls-container" id="features" aria-labelledby="features-heading">
+    <h2 id="features-heading">Built around practice, not performance</h2>
+    <div class="features-rows">
+      @for (f of features; track f.title; let i = $index) {
+        <article class="feature-row" [class.reverse]="i % 2 === 1">
+          <div class="feature-text">
+            <h3>{{ f.title }}</h3>
+            <p class="muted">{{ f.body }}</p>
+          </div>
+          <div class="feature-art">
+            <img [src]="f.image" [alt]="f.alt" width="1440" height="900" loading="lazy" />
+          </div>
+        </article>
+      }
+    </div>
+  </section>
+
+  <!-- Pull quote -->
+  <section class="quote-section ls-container" aria-labelledby="quote-heading">
+    <h2 id="quote-heading" class="sr-only">What learners say</h2>
+    <figure class="pull-quote">
+      <blockquote>
+        <p>{{ testimonial.quote }}</p>
+      </blockquote>
+      <figcaption>
+        <span class="q-name">{{ testimonial.name }}</span>
+        <span class="q-lang muted">{{ testimonial.lang }}</span>
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="cta ls-container" aria-labelledby="cta-heading">
+    <div class="cta-card">
+      <h2 id="cta-heading">Ready when you are.</h2>
+      <p class="muted">It takes a minute to start practising with someone, somewhere in the world.</p>
+      <a class="btn btn-primary" routerLink="/register">
+        Create your account <app-icon name="arrow-right" [size]="18" />
+      </a>
+    </div>
+  </section>
+
+  <footer class="footer ls-container">
+    <a class="brand muted" routerLink="/" aria-label="LinguaSpace home">
+      <app-icon name="sparkles" [size]="18" />
+      <span>LinguaSpace</span>
+    </a>
+    <span class="muted">© 2026 LinguaSpace</span>
+  </footer>
+</div>

@@ -1,0 +1,124 @@
+<div class="feed-wrap">
+  <!-- Feed column -->
+  <div class="feed-col">
+    <app-composer />
+
+    <div class="seg" role="tablist" aria-label="Feed">
+      <button
+        class="seg-btn"
+        [class.active]="tab() === 'following'"
+        role="tab"
+        [attr.aria-selected]="tab() === 'following'"
+        type="button"
+        (click)="setTab('following')"
+      >
+        Following
+      </button>
+      <button
+        class="seg-btn"
+        [class.active]="tab() === 'explore'"
+        role="tab"
+        [attr.aria-selected]="tab() === 'explore'"
+        type="button"
+        (click)="setTab('explore')"
+      >
+        Explore
+      </button>
+    </div>
+
+    @if (status() === 'loading' && !items().length) {
+      <div class="skeleton-feed" aria-busy="true" aria-label="Loading feed">
+        @for (i of [1,2,3]; track i) {
+          <div class="skeleton-post card">
+            <div class="sk-head">
+              <span class="sk-avatar"></span>
+              <div class="sk-meta">
+                <span class="sk-line med"></span>
+                <span class="sk-line short"></span>
+              </div>
+            </div>
+            <span class="sk-line long"></span>
+            <span class="sk-line med"></span>
+            <span class="sk-line short"></span>
+          </div>
+        }
+      </div>
+    } @else if (status() === 'error' && !items().length) {
+      <div class="state card">
+        <p>Could not load the feed.</p>
+        <button class="btn btn-secondary" type="button" (click)="retry()">Retry</button>
+      </div>
+    } @else if (!items().length) {
+      <div class="empty card">
+        <span class="empty-icon">
+          <app-icon name="home" [size]="24" />
+        </span>
+        <h3>Your feed is quiet</h3>
+        <p class="muted">
+          Follow a few learners or post something to get started. A calm feed grows one post at a time.
+        </p>
+      </div>
+    } @else {
+      <div class="list">
+        @for (post of items(); track post.id) {
+          <app-post-card [post]="post" />
+        }
+      </div>
+      @if (status() === 'loading') {
+        <div class="load-more-indicator">
+          <span class="sk-line short" style="width:80px"></span>
+        </div>
+      }
+      @if (hasMore() && status() !== 'loading') {
+        <button class="btn btn-secondary btn-block" type="button" (click)="loadMore()">Load more</button>
+      }
+    }
+  </div>
+
+  <!-- Desktop sidebar -->
+  <aside class="sidebar" aria-label="Sidebar">
+    <!-- Active rooms -->
+    @if (activeRooms().length) {
+      <section class="widget card">
+        <h2 class="widget-title">
+          <app-icon name="rooms" [size]="16" />
+          Active rooms
+        </h2>
+        <ul class="widget-list">
+          @for (r of activeRooms(); track r.id) {
+            <li>
+              <a class="widget-item" [routerLink]="['/app/rooms', r.id]">
+                <span class="wi-main">
+                  <span class="live-dot"></span>
+                  <span class="wi-title">{{ r.title }}</span>
+                </span>
+                <span class="wi-meta muted">{{ r.participantCount }}/{{ r.maxParticipants }}</span>
+              </a>
+            </li>
+          }
+        </ul>
+        <a class="widget-link" routerLink="/app/rooms">All rooms →</a>
+      </section>
+    }
+
+    <!-- Leaderboard mini -->
+    @if (topLearners().length) {
+      <section class="widget card">
+        <h2 class="widget-title">
+          <app-icon name="flame" [size]="16" />
+          Top learners
+        </h2>
+        <ol class="widget-list leaderboard-mini">
+          @for (e of topLearners(); track e.userId) {
+            <li class="lb-row" [class.is-me]="e.userId === me()?.userId">
+              <span class="lb-rank">{{ e.rank }}</span>
+              <span class="lb-name">{{ e.displayName }}</span>
+              <span class="lb-xp muted">{{ e.totalXp.toLocaleString() }}</span>
+            </li>
+          }
+        </ol>
+        <a class="widget-link" routerLink="/app/leaderboard">Full leaderboard →</a>
+      </section>
+    }
+  </aside>
+</div>

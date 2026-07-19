@@ -1,0 +1,211 @@
+:host { display: block; }
+
+.notifications-wrap {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ls-space-3);
+  padding: var(--ls-space-4) var(--ls-space-4) var(--ls-space-6);
+}
+
+// ---- Header ----
+.notifications-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ls-space-3);
+  padding-bottom: var(--ls-space-4);
+  border-bottom: 1px solid var(--ls-border);
+}
+.notifications-head h1 { font-size: var(--ls-text-title); margin: 0 0 4px; }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ls-space-2);
+}
+
+// ---- Notification list ----
+.notif-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.notif {
+  display: flex;
+  align-items: center;
+  gap: var(--ls-space-3);
+  width: 100%;
+  text-align: start;
+  padding: var(--ls-space-3) var(--ls-space-3);
+  border-radius: var(--ls-radius-md);
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: background var(--ls-duration-fast) var(--ls-ease-out);
+  position: relative;
+}
+.notif:hover {
+  background: var(--ls-surface-strong);
+}
+.notif + .notif {
+  border-top: 1px solid var(--ls-border);
+}
+.notif.unread {
+  background: var(--ls-primary-tint);
+}
+.notif.unread:hover {
+  background: color-mix(in oklch, var(--ls-primary-tint) 70%, var(--ls-surface-strong) 30%);
+}
+
+// ---- Icon ----
+.notif-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--ls-radius-md);
+  background: var(--ls-surface-strong);
+  color: var(--ls-muted);
+  flex-shrink: 0;
+  transition: background var(--ls-duration-fast) var(--ls-ease-out),
+              color var(--ls-duration-fast) var(--ls-ease-out);
+}
+.notif.unread .notif-icon {
+  background: var(--ls-primary);
+  color: var(--ls-on-primary);
+}
+.notif-icon.accent {
+  background: var(--ls-accent-tint);
+  color: var(--ls-on-accent);
+}
+
+// ---- Content ----
+.notif-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.notif-text {
+  font-size: var(--ls-text-sm);
+  color: var(--ls-ink);
+  line-height: var(--ls-leading-normal);
+}
+.notif-actions {
+  display: flex;
+  gap: var(--ls-space-2);
+  margin-top: var(--ls-space-2);
+}
+
+.notif.unread .notif-text {
+  font-weight: var(--ls-weight-medium);
+}
+.notif-time {
+  font-size: var(--ls-text-caption);
+  flex-shrink: 0;
+}
+
+// ---- Unread dot ----
+.unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--ls-radius-pill);
+  background: var(--ls-primary);
+  flex-shrink: 0;
+}
+
+// ---- Delete button ----
+.notif-delete {
+  opacity: 0;
+  padding: var(--ls-space-1);
+  flex-shrink: 0;
+  transition: opacity var(--ls-duration-fast) var(--ls-ease-out),
+              color var(--ls-duration-fast) var(--ls-ease-out);
+}
+.notif:hover .notif-delete {
+  opacity: 1;
+}
+.notif-delete:hover {
+  color: var(--ls-danger);
+}
+
+// ---- Empty state ----
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--ls-space-2);
+}
+.empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--ls-radius-md);
+  background: var(--ls-primary-tint);
+  color: var(--ls-primary);
+  margin-bottom: var(--ls-space-1);
+}
+.empty h3 { margin-bottom: 0; }
+.empty p { font-size: var(--ls-text-sm); max-width: 48ch; }
+
+// ---- Error state ----
+.state {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ls-space-3);
+  align-items: flex-start;
+}
+
+// ---- Skeleton loading ----
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ls-space-1);
+}
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ls-space-3);
+  padding: var(--ls-space-3);
+}
+.skeleton-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--ls-radius-md);
+  background: var(--ls-surface-strong);
+  flex-shrink: 0;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.skeleton-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ls-space-1);
+}
+.skeleton-line {
+  height: 12px;
+  border-radius: var(--ls-radius-sm);
+  background: var(--ls-surface-strong);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.skeleton-line.long { width: 80%; }
+.skeleton-line.short { width: 40%; }
+
+// Skeleton pulse is shared via styles/_components.scss.
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-icon,
+  .skeleton-line {
+    animation: none;
+  }
+}

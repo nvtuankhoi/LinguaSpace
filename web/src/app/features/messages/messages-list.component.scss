@@ -1,0 +1,129 @@
+:host { display: block; }
+
+.messages-wrap {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ls-space-3);
+  padding: var(--ls-space-4);
+}
+
+.list-head h1 { font-size: var(--ls-text-title); }
+
+// ---- Skeleton ----
+// Skeleton pulse + shapes are shared via styles/_components.scss.
+
+.skeleton-list { display: flex; flex-direction: column; gap: var(--ls-space-2); }
+.sk-conv {
+  display: flex; align-items: center; gap: var(--ls-space-3);
+  padding: var(--ls-space-3); background: var(--ls-surface);
+  border: 1px solid var(--ls-border); border-radius: var(--ls-radius-lg);
+}
+.sk-avatar {
+  width: 44px; height: 44px; border-radius: var(--ls-radius-pill);
+  background: var(--ls-surface-strong); flex-shrink: 0;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+.sk-body { flex: 1; display: flex; flex-direction: column; gap: var(--ls-space-2); }
+.sk-top { display: flex; justify-content: space-between; }
+.sk-line {
+  display: block; height: 11px; border-radius: var(--ls-radius-sm);
+  background: var(--ls-surface-strong); animation: pulse 1.5s ease-in-out infinite;
+}
+.sk-line.tiny { width: 40px; }
+.sk-line.med { width: 50%; }
+.sk-line.long { width: 80%; }
+
+// ---- Conversation list ----
+.conv-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+
+.conv {
+  display: flex;
+  align-items: center;
+  gap: var(--ls-space-3);
+  width: 100%;
+  text-align: start;
+  padding: var(--ls-space-3);
+  border-radius: var(--ls-radius-lg);
+  background: var(--ls-surface);
+  border: 1px solid var(--ls-border);
+  transition: background 120ms ease-out,
+              border-color 120ms ease-out;
+  font-family: inherit;
+  cursor: pointer;
+  color: var(--ls-ink);
+}
+.conv + .conv { margin-top: var(--ls-space-2); }
+.conv:hover { background: var(--ls-surface-strong); }
+.conv.has-unread { border-color: color-mix(in oklch, var(--ls-primary) 30%, var(--ls-border)); }
+
+// ---- Avatar with presence dot ----
+.avatar-wrap { position: relative; flex-shrink: 0; }
+.presence-dot {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--ls-radius-pill);
+  border: 2px solid var(--ls-bg);
+  background: var(--ls-border-strong);
+}
+.presence-dot.online { background: var(--ls-success); }
+
+// ---- Conversation body ----
+.conv-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.conv-top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--ls-space-2); }
+.name { font-weight: var(--ls-weight-medium); color: var(--ls-ink); font-size: var(--ls-text-sm); }
+.name.unread-name { font-weight: var(--ls-weight-semibold); }
+.time { font-size: var(--ls-text-caption); flex-shrink: 0; }
+
+.preview {
+  font-size: var(--ls-text-sm);
+  color: var(--ls-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.preview.unread { color: var(--ls-ink); font-weight: var(--ls-weight-medium); }
+
+// ---- Unread badge ----
+.badge {
+  flex-shrink: 0;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--ls-radius-pill);
+  background: var(--ls-primary);
+  color: var(--ls-on-primary);
+  font-size: 11px;
+  font-weight: var(--ls-weight-semibold);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+// ---- Empty ----
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ls-space-2);
+  padding: var(--ls-space-6) var(--ls-space-5);
+}
+.empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--ls-radius-md);
+  background: var(--ls-primary-tint);
+  color: var(--ls-primary);
+  margin-bottom: var(--ls-space-1);
+}
+.empty h3 { margin-bottom: 0; }
+.empty p { font-size: var(--ls-text-sm); }
+
+.state { display: flex; flex-direction: column; gap: var(--ls-space-3); align-items: flex-start; }

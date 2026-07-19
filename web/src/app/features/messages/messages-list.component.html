@@ -1,0 +1,77 @@
+<div class="messages-wrap">
+  <header class="list-head">
+    <div>
+      <h1>Messages</h1>
+      <p class="muted">Your private conversations.</p>
+    </div>
+  </header>
+
+  @if (status() === 'loading' && !conversations().length) {
+    <div class="skeleton-list">
+      @for (i of [1,2,3]; track i) {
+        <div class="sk-conv">
+          <span class="sk-avatar"></span>
+          <div class="sk-body">
+            <div class="sk-top">
+              <span class="sk-line med"></span>
+              <span class="sk-line tiny"></span>
+            </div>
+            <span class="sk-line long"></span>
+          </div>
+        </div>
+      }
+    </div>
+  } @else if (status() === 'error' && !conversations().length) {
+    <div class="card state">
+      <p>Could not load messages.</p>
+      <button class="btn btn-secondary" type="button" (click)="store.loadConversations()">Try again</button>
+    </div>
+  } @else if (!conversations().length) {
+    <div class="empty card">
+      <span class="empty-icon">
+        <app-icon name="messages" [size]="24" />
+      </span>
+      <h3>No conversations yet</h3>
+      <p class="muted">When you message someone, it will show up here.</p>
+    </div>
+  } @else {
+    <ul class="conv-list">
+      @for (c of conversations(); track c.id) {
+        <li>
+          <button
+            class="conv"
+            type="button"
+            [class.has-unread]="c.unreadCount > 0"
+            (click)="open(c.id)"
+          >
+            <div class="avatar-wrap">
+              <app-avatar [name]="c.otherUserDisplayName ?? ''" [src]="c.otherUserAvatarUrl" [size]="44" />
+              <!-- Online dot driven by PresenceHub (UserOnline/UserOffline). -->
+              <span
+                class="presence-dot"
+                [class.online]="isOnline(c.otherUserId)"
+                [attr.aria-label]="isOnline(c.otherUserId) ? 'Online' : 'Offline'"
+              ></span>
+            </div>
+            <div class="conv-main">
+              <div class="conv-top">
+                <span class="name" [class.unread-name]="c.unreadCount > 0">
+                  {{ c.otherUserDisplayName ?? 'Unknown' }}
+                </span>
+                @if (c.lastMessageAt) {
+                  <span class="time muted">{{ time(c.lastMessageAt) }}</span>
+                }
+              </div>
+              <p class="preview" [class.unread]="c.unreadCount > 0">
+                {{ c.lastMessage ?? 'No messages yet' }}
+              </p>
+            </div>
+            @if (c.unreadCount > 0) {
+              <span class="badge" aria-label="{{ c.unreadCount }} unread">{{ c.unreadCount }}</span>
+            }
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</div>

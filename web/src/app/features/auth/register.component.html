@@ -1,0 +1,41 @@
+<div class="auth">
+  <a class="auth-back" routerLink="/">
+    <app-icon name="sparkles" [size]="20" />
+    <span>LinguaSpace</span>
+  </a>
+
+  <div class="auth-card card">
+    <div>
+      <h1>Start practising</h1>
+      <p class="muted">Create an account in under a minute.</p>
+    </div>
+
+    @if (error()) {
+      <div class="alert" role="alert">{{ error() }}</div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <label class="field">
+        <span>Email</span>
+        <input type="email" formControlName="email" autocomplete="email" placeholder="you@example.com" />
+      </label>
+
+      <label class="field">
+        <span>Password</span>
+        <input type="password" formControlName="password" autocomplete="new-password" placeholder="At least 8 characters" />
+      </label>
+
+      <label class="field">
+        <span>Confirm password</span>
+        <input type="password" formControlName="confirm" autocomplete="new-password" placeholder="Repeat your password" />
+      </label>
+
+      <button class="btn btn-primary btn-block" type="submit" [disabled]="loading()">
+        {{ loading() ? 'Creating account…' : 'Create account' }}
+      </button>
+    </form>
+
+    <p class="switch muted">By continuing you agree to practise kindly and respect other learners.</p>
+    <p class="switch">Already have an account? <a routerLink="/login">Log in</a></p>
+  </div>
+</div>
