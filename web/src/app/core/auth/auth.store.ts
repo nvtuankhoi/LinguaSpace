@@ -78,6 +78,16 @@ export const AuthStore = signalStore(
         patchState(store, { user: null, status: 'idle', error: null });
       },
 
+      /**
+       * Ends the session locally WITHOUT calling /Auth/logout — used when the
+       * backend has already invalidated the session (refresh token expired or
+       * revoked) and a logout call would just 401. Mirrors logout()'s tail.
+       */
+      forceLogout(): void {
+        tokens.clear();
+        patchState(store, { user: null, status: 'idle', error: null });
+      },
+
       clearError(): void {
         patchState(store, { error: null, status: 'idle' });
       },
