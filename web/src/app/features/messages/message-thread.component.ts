@@ -89,14 +89,14 @@ export class MessageThreadComponent implements OnInit, AfterViewChecked {
       this.afterLiveMessage();
     });
 
-    // Live incoming DMs pushed by PresenceHub's "NewDirectMessage". Only those
-    // for the open conversation affect this thread; others just bump the badge
-    // (handled inside receiveIncoming).
+    // Live incoming DMs pushed by PresenceHub's "NewDirectMessage". The store
+    // update (append + auto mark-read for this thread, unread-badge bump for
+    // other conversations) is routed globally by the shell; here we only keep
+    // the open thread scrolled to the newly arrived message.
     this.presence.onDirectMessage.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((dm) => {
       if (dm.conversationId !== Number(this.id())) {
         return;
       }
-      this.store.receiveIncoming(dm);
       this.afterLiveMessage();
     });
 
@@ -209,6 +209,33 @@ export class MessageThreadComponent implements OnInit, AfterViewChecked {
       return;
     }
     await this.store.deleteMessage(m.id);
+  }
+
+  // ---- Conversation search + clear-my-messages ----
+  protected readonly searchResults = this.store.searchResults;
+  protected readonly searchStatus = this.store.searchStatus;
+  protected readonly showSearch = signal(false);
+  protected readonly searchForm = this.fb.nonNullable.group({ term: [''] });
+
+  protected toggleSearch(): void {
+    const next = !this.showSearch();
+    this.showSearch.set(next);
+    if (!next) {
+      this.store.clearSearch();
+      this.searchForm.reset();
+    }
+  }
+
+  protected async runSearch(): Promise<void> {
+    const term = this.searchForm.getRawValue().term.trim();
+    await this.store.searchConversation(term);
+  }
+
+  protected async clearMine(): Promise<void> {
+    if (!confirm('Delete every message you sent in this conversation? This cannot be undone.')) {
+      return;
+    }
+    await this.store.clearMyMessages();
   }
 
   protected onInput(event: Event): void {

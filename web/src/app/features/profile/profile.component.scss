@@ -10,8 +10,7 @@
 }
 
 /* ---- Skeleton ---- */
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-@media (prefers-reduced-motion: reduce) { .sk-avatar, .sk-line { animation: none !important; } }
+// Skeleton pulse + shapes are shared via styles/_components.scss.
 
 .sk-profile { display: flex; flex-direction: column; gap: var(--ls-space-4); padding: var(--ls-space-4); background: var(--ls-surface); border: 1px solid var(--ls-border); border-radius: var(--ls-radius-md); }
 .sk-head-row { display: flex; align-items: center; gap: var(--ls-space-4); }
@@ -49,7 +48,7 @@
 .bio-edit textarea { resize: vertical; min-height: 80px; }
 
 .bio {
-  color: var(--ls-ink-soft);
+  color: var(--ls-ink);
   line-height: 1.55;
   max-width: 65ch;
   text-wrap: pretty;
@@ -119,10 +118,11 @@
 }
 .xp-fill {
   height: 100%;
+  width: 100%;
+  transform-origin: left center;
   background: var(--ls-primary);
   border-radius: var(--ls-radius-pill);
-  transition: width 0.7s var(--ls-ease-out);
-  min-width: 4px;
+  transition: transform 0.7s var(--ls-ease-out);
 }
 .xp-bar-label { display: flex; justify-content: space-between; font-size: var(--ls-text-caption); }
 .streak-best { font-size: var(--ls-text-caption); }
@@ -130,7 +130,7 @@
 /* ---- Badges ---- */
 .badges { display: flex; flex-direction: column; gap: var(--ls-space-3); }
 .badges h2 { font-size: var(--ls-text-subtitle); }
-.badge-count { font-weight: var(--ls-weight-normal); font-size: 0.9em; }
+.badge-count { font-weight: var(--ls-weight-regular); font-size: 0.9em; }
 
 .badges-grid {
   list-style: none;
@@ -204,7 +204,7 @@
 .day-label { font-weight: var(--ls-weight-semibold); color: var(--ls-ink); }
 .day-total { font-weight: var(--ls-weight-semibold); color: var(--ls-primary); font-size: var(--ls-text-sm); }
 
-.tx-reason { color: var(--ls-ink-soft); }
+.tx-reason { color: var(--ls-muted); }
 .tx-meta { display: inline-flex; align-items: baseline; gap: var(--ls-space-2); }
 .tx-amount { font-weight: var(--ls-weight-semibold); color: var(--ls-success); }
 .tx-time { font-size: var(--ls-text-caption); }
@@ -218,8 +218,6 @@
   font-size: var(--ls-text-caption);
   font-weight: var(--ls-weight-semibold);
   color: var(--ls-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .lang-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }

@@ -76,6 +76,14 @@ export class ShellComponent {
     this.presence.onNotification
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((n) => this.notificationStore.addRealtime(n));
+    // Live incoming DMs: for the open conversation append + auto mark-read; for
+    // any other conversation bump its unread badge + last message; a brand-new
+    // conversation reloads the list. Routed globally here (not in the message
+    // thread) so the Messages nav badge and conversation list update live even
+    // when no thread is open.
+    this.presence.onDirectMessage
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((dm) => this.messageStore.receiveIncoming(dm));
     this.destroyRef.onDestroy(() => void this.presence.disconnect());
   }
 

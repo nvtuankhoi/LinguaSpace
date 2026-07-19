@@ -191,3 +191,52 @@
   flex-direction: column;
   gap: var(--ls-space-3);
 }
+
+// ---- Header actions (search / clear) ----
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ls-space-3);
+  margin-left: auto;
+}
+
+// ---- Conversation search bar ----
+.search-bar {
+  display: flex;
+  gap: var(--ls-space-2);
+  padding: var(--ls-space-2) var(--ls-space-4);
+  border-bottom: 1px solid var(--ls-border);
+  background: var(--ls-bg);
+  flex-shrink: 0;
+}
+.search-bar input { flex: 1; }
+
+// ---- Search results (overlay covering the thread while searching) ----
+.search-results {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  padding: var(--ls-space-3) var(--ls-space-4);
+  background: var(--ls-bg);
+  z-index: 2;
+}
+.search-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ls-space-2);
+}
+.search-item {
+  background: var(--ls-surface);
+  border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-md);
+  padding: var(--ls-space-2) var(--ls-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.search-item.mine { background: var(--ls-primary-tint); border-color: transparent; }
+.search-content { font-size: var(--ls-text-sm); line-height: 1.4; }
+.search-time { font-size: 11px; }

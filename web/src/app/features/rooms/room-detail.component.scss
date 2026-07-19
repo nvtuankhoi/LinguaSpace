@@ -105,6 +105,24 @@
   display: block;
 }
 .video-tile.is-local video { transform: scaleX(-1); } // mirror self-view
+
+// ---- Featured screen-share stage (shown above the camera grid while anyone shares) ----
+.screen-stage {
+  flex-shrink: 0;
+  padding: var(--ls-space-3) var(--ls-space-3) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ls-space-2);
+}
+.video-tile.screen-tile {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  max-height: 70vh;
+  border-radius: 12px;
+}
+// Screen content must not be cropped or mirrored.
+.video-tile.screen-tile video { object-fit: contain; }
+.video-tile.screen-tile.is-local video { transform: none; }
 .av-error {
   color: var(--ls-danger);
   font-size: var(--ls-text-sm);
@@ -155,7 +173,7 @@
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  font-weight: var(--ls-weight-bold);
+  font-weight: var(--ls-weight-semibold);
 }
 .room-type-badge.type-voiceonly { color: var(--ls-success); }
 .room-type-badge.type-videoenabled { color: var(--ls-primary); }
@@ -230,6 +248,8 @@
 .av-btn:hover { background: var(--ls-surface-strong); border-color: var(--ls-border-strong); }
 .av-btn.muted-btn { background: var(--ls-danger-tint); border-color: var(--ls-danger); color: var(--ls-danger); }
 .av-btn.muted-btn:hover { filter: brightness(0.95); }
+.av-btn.share-active { background: var(--ls-primary-tint); border-color: var(--ls-primary); color: var(--ls-primary); }
+.av-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .av-join, .av-leave { font-size: var(--ls-text-sm); padding: 8px 14px; }
 
@@ -350,11 +370,9 @@
 .modal-body { display: flex; flex-direction: column; gap: var(--ls-space-3); }
 
 .participants-manage h3 {
-  font-size: 11px;
+  font-size: var(--ls-text-caption);
   margin: 0 0 var(--ls-space-2);
   color: var(--ls-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 .participants-manage ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--ls-space-2); }
 .participants-manage li {
@@ -366,10 +384,10 @@
   border-radius: var(--ls-radius-sm);
 }
 .pm-name { flex: 1; min-width: 0; font-size: var(--ls-text-sm); display: flex; align-items: center; gap: var(--ls-space-2); }
-.pm-host { font-size: 10px; font-weight: var(--ls-weight-bold); color: var(--ls-primary); }
+.pm-host { font-size: 10px; font-weight: var(--ls-weight-semibold); color: var(--ls-primary); }
 .pm-muted {
   font-size: 10px;
-  font-weight: var(--ls-weight-bold);
+  font-weight: var(--ls-weight-semibold);
   color: var(--ls-on-accent);
   background: var(--ls-warning);
   padding: 1px 6px;
@@ -379,7 +397,7 @@
 }
 .pm-in-call {
   font-size: 10px;
-  font-weight: var(--ls-weight-bold);
+  font-weight: var(--ls-weight-semibold);
   color: var(--ls-on-accent);
   background: var(--ls-success);
   padding: 1px 6px;
@@ -392,11 +410,9 @@
 // ---- Invite-by-search (in manage modal) ----
 .invite-section { gap: var(--ls-space-2); }
 .invite-section h3 {
-  font-size: 11px;
+  font-size: var(--ls-text-caption);
   margin: 0;
   color: var(--ls-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 .invite-form { display: flex; gap: var(--ls-space-2); }
 .invite-form input { flex: 1; min-width: 0; font-size: var(--ls-text-sm); }

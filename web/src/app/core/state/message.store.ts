@@ -3,6 +3,7 @@ import { patchState, signalStore, withComputed, withMethods, withState } from '@
 import { firstValueFrom } from 'rxjs';
 
 import { SocialApi } from '../api/social.api';
+import { AuthStore } from '../auth/auth.store';
 import { ConversationDto, DirectMessageDto } from '../models';
 import { DmRealtimeService } from './dm-realtime.service';
 
@@ -12,10 +13,19 @@ interface MessageState {
   conversations: ConversationDto[];
   active: ConversationDto | null;
   messages: DirectMessageDto[];
+  searchResults: DirectMessageDto[];
+  searchStatus: Status;
   status: Status;
 }
 
-const initialState: MessageState = { conversations: [], active: null, messages: [], status: 'idle' };
+const initialState: MessageState = {
+  conversations: [],
+  active: null,
+  messages: [],
+  searchResults: [],
+  searchStatus: 'idle',
+  status: 'idle',
+};
 
 export const MessageStore = signalStore(
   { providedIn: 'root' },
@@ -23,7 +33,7 @@ export const MessageStore = signalStore(
   withComputed(({ conversations }) => ({
     unreadTotal: computed(() => conversations().reduce((sum, c) => sum + (c.unreadCount ?? 0), 0)),
   })),
-  withMethods((store, api = inject(SocialApi), realtime = inject(DmRealtimeService)) => {
+  withMethods((store, api = inject(SocialApi), realtime = inject(DmRealtimeService), auth = inject(AuthStore)) => {
     const loadConversations = async (): Promise<void> => {
       patchState(store, { status: 'loading' });
       try {
@@ -51,7 +61,7 @@ export const MessageStore = signalStore(
       loadConversations,
 
       async openConversation(id: number): Promise<void> {
-        patchState(store, { status: 'loading', active: null, messages: [] });
+        patchState(store, { status: 'loading', active: null, messages: [], searchResults: [], searchStatus: 'idle' });
         try {
           if (!store.conversations().length) {
             await loadConversations();
@@ -106,6 +116,51 @@ export const MessageStore = signalStore(
             messages: store.messages().map((m) =>
               m.id === messageId ? { ...m, isDeleted: true, content: '[deleted]' } : m,
             ),
+          });
+        } catch {
+          /* surfaced elsewhere */
+        }
+      },
+
+      /** Searches the open conversation's messages server-side; results replace `searchResults`. */
+      async searchConversation(term: string): Promise<void> {
+        const active = store.active();
+        if (!active) {
+          return;
+        }
+        const q = term.trim();
+        if (!q) {
+          patchState(store, { searchResults: [], searchStatus: 'idle' });
+          return;
+        }
+        patchState(store, { searchStatus: 'loading' });
+        try {
+          const res = await firstValueFrom(api.searchMessages(active.id, q));
+          patchState(store, { searchResults: res.items, searchStatus: 'idle' });
+        } catch {
+          patchState(store, { searchStatus: 'error' });
+        }
+      },
+
+      clearSearch(): void {
+        patchState(store, { searchResults: [], searchStatus: 'idle' });
+      },
+
+      /**
+       * Soft-deletes every message the current user sent in the open conversation
+       * (server: ClearMyMessagesCommand). Optimistically drops my messages from the
+       * thread; the other participant is live-synced per-message by the server.
+       */
+      async clearMyMessages(): Promise<void> {
+        const active = store.active();
+        if (!active) {
+          return;
+        }
+        try {
+          await firstValueFrom(api.clearMyMessages(active.id));
+          const myId = auth.user()?.userId;
+          patchState(store, {
+            messages: store.messages().filter((m) => m.senderId !== myId),
           });
         } catch {
           /* surfaced elsewhere */
@@ -192,7 +247,7 @@ export const MessageStore = signalStore(
 
       async closeConversation(): Promise<void> {
         await realtime.disconnect();
-        patchState(store, { active: null, messages: [] });
+        patchState(store, { active: null, messages: [], searchResults: [], searchStatus: 'idle' });
       },
     };
   }),

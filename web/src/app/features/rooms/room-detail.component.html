@@ -11,7 +11,23 @@
       
       @if (room.roomType === 'VideoEnabled') {
         <div class="stage">
-          <div class="video-grid" [class.has-tiles]="avConnected() && videoTiles().length > 0">
+          @if (avConnected() && screenTiles().length) {
+            <div class="screen-stage">
+              @for (tile of screenTiles(); track tile.identity) {
+                <div class="video-tile screen-tile" [class.is-local]="tile.isLocal">
+                  <video
+                    #videoEl
+                    [attr.data-identity]="tile.identity"
+                    autoplay
+                    playsinline
+                    [muted]="tile.isLocal"
+                  ></video>
+                  <div class="tile-label">{{ tile.displayName }}</div>
+                </div>
+              }
+            </div>
+          }
+          <div class="video-grid" [class.has-tiles]="avConnected() && cameraTiles().length > 0">
             @if (!avConnected()) {
               <div class="join-prompt card">
                 <div class="prompt-icon"><app-icon name="camera" [size]="32" /></div>
@@ -25,8 +41,8 @@
                 </button>
               </div>
             } @else {
-              @for (tile of videoTiles(); track tile.identity) {
-                <div class="video-tile" [class.is-local]="tile.isLocal">
+              @for (tile of cameraTiles(); track tile.identity) {
+                <div class="video-tile" [class.is-local]="tile.isLocal" [class.is-speaking]="isActiveSpeaker(tile)">
                   @if (tile.videoTrack) {
                     <video
                       #videoEl
@@ -118,6 +134,17 @@
                   [attr.aria-pressed]="camOff()"
                 >
                   <app-icon [name]="camOff() ? 'camera-off' : 'camera'" [size]="20" />
+                </button>
+                <button
+                  class="av-btn"
+                  [class.share-active]="screenSharing()"
+                  type="button"
+                  (click)="toggleScreenShare()"
+                  [disabled]="!avConnected()"
+                  [attr.aria-label]="screenSharing() ? 'Stop screen share' : 'Share screen'"
+                  [attr.aria-pressed]="screenSharing()"
+                >
+                  <app-icon [name]="screenSharing() ? 'screen-off' : 'screen'" [size]="20" />
                 </button>
               }
 

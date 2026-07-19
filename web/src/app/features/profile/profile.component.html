@@ -111,7 +111,7 @@
             aria-valuemax="100"
             [attr.aria-label]="'XP progress: ' + xpProgress() + '% toward next level'"
           >
-            <div class="xp-fill" [style.width.%]="xpProgress()"></div>
+            <div class="xp-fill" [style.transform]="'scaleX(' + (xpProgress() / 100) + ')'"></div>
           </div>
           <div class="xp-bar-label">
             <span class="muted">{{ xpInLevel() }} / {{ xpPerLevel }} XP</span>

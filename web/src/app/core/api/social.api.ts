@@ -55,4 +55,21 @@ export class SocialApi {
   deleteDm(messageId: number) {
     return this.http.delete(`${this.base}/Social/messages/${messageId}`, { withCredentials: true });
   }
+
+  searchMessages(conversationId: number, term: string, opts: { page?: number; pageSize?: number } = {}) {
+    let params = new HttpParams()
+      .set('term', term)
+      .set('page', String(opts.page ?? 1))
+      .set('pageSize', String(opts.pageSize ?? 30));
+    return this.http.get<PaginatedResult<DirectMessageDto>>(
+      `${this.base}/Social/conversations/${conversationId}/messages/search`,
+      { params, withCredentials: true },
+    );
+  }
+
+  clearMyMessages(conversationId: number) {
+    return this.http.delete(`${this.base}/Social/conversations/${conversationId}/messages`, {
+      withCredentials: true,
+    });
+  }
 }

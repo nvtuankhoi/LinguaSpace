@@ -17,7 +17,7 @@ import { Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { firstValueFrom } from 'rxjs';
 
-import { Room as LkRoom, RoomEvent, Track } from 'livekit-client';
+import { Participant, Room as LkRoom, RoomEvent, Track } from 'livekit-client';
 
 import { AuthStore } from '../../core/auth/auth.store';
 import { RoomStore } from '../../core/state/room.store';
@@ -36,6 +36,8 @@ interface MediaTile {
   /** A LiveKit video track to render, or null for an audio-only/avatar fallback tile. */
   videoTrack: Track | null;
   isLocal: boolean;
+  /** A screen-share track (Track.Source.ScreenShare), rendered as a featured tile. */
+  isScreenShare: boolean;
 }
 
 @Component({
@@ -94,6 +96,14 @@ export class RoomDetailComponent implements OnInit {
   protected readonly micMuted = signal(false);
   protected readonly camOff = signal(false);
   protected readonly videoTiles = signal<MediaTile[]>([]);
+  /** True while the local participant is publishing a screen-share track. */
+  protected readonly screenSharing = signal(false);
+  /** LiveKit identities currently detected as speaking (drives `.is-speaking`). */
+  protected readonly activeSpeakerIds = signal<ReadonlySet<string>>(new Set());
+  /** Screen-share tiles (featured, rendered above the camera grid). */
+  protected readonly screenTiles = computed(() => this.videoTiles().filter((t) => t.isScreenShare));
+  /** Camera (and avatar-fallback) tiles for the main grid. */
+  protected readonly cameraTiles = computed(() => this.videoTiles().filter((t) => !t.isScreenShare));
 
   private lkRoom: LkRoom | null = null;
   private readonly thread = viewChild<ElementRef<HTMLDivElement>>('thread');
@@ -167,6 +177,11 @@ export class RoomDetailComponent implements OnInit {
     return this.mediaParticipantIds().includes(userId);
   }
 
+  /** True when this tile's participant is currently an active speaker. */
+  protected isActiveSpeaker(tile: MediaTile): boolean {
+    return this.activeSpeakerIds().has(tile.identity);
+  }
+
   protected time(iso: string): string {
     return relativeTime(iso);
   }
@@ -201,6 +216,26 @@ export class RoomDetailComponent implements OnInit {
     }
   }
 
+  /**
+   * Publish/stop a screen-share track. The browser shows its native picker
+   * (getDisplayMedia); stopping via the browser's "Stop sharing" bar fires
+   * LocalTrackUnpublished, which resets `screenSharing` (see joinAv).
+   */
+  protected async toggleScreenShare(): Promise<void> {
+    const lk = this.lkRoom;
+    if (!lk) {
+      return;
+    }
+    const sharing = !this.screenSharing();
+    this.screenSharing.set(sharing);
+    try {
+      await lk.localParticipant.setScreenShareEnabled(sharing);
+    } catch (e) {
+      console.error('[livekit] screen share toggle failed', e);
+      this.screenSharing.set(!sharing);
+    }
+  }
+
   protected async joinAv(): Promise<void> {
     const room = this.current();
     if (!room || this.avConnecting() || this.avConnected()) {
@@ -224,7 +259,19 @@ export class RoomDetailComponent implements OnInit {
       lk.on(RoomEvent.TrackSubscribed, () => this.syncTiles());
       lk.on(RoomEvent.TrackUnsubscribed, () => this.syncTiles());
       lk.on(RoomEvent.LocalTrackPublished, () => this.syncTiles());
-      lk.on(RoomEvent.LocalTrackUnpublished, () => this.syncTiles());
+      lk.on(RoomEvent.LocalTrackUnpublished, (publication) => {
+        // The user stopped screen share via the browser's "Stop sharing" bar.
+        if (publication.source === Track.Source.ScreenShare) {
+          this.screenSharing.set(false);
+        }
+        this.syncTiles();
+      });
+      // Active-speaker detection (LiveKit's server-side audio levels). Highlights
+      // each speaker's camera tile via the `.is-speaking` style. Ordered loudest
+      // first; includes the local participant, so self-talk lights up too.
+      lk.on(RoomEvent.ActiveSpeakersChanged, (speakers: Participant[]) => {
+        this.activeSpeakerIds.set(new Set(speakers.map((s) => s.identity)));
+      });
       // Involuntary disconnect (host ended the call, network loss, server kick).
       // Voluntary disconnects removeAllListeners() first, so this only fires
       // when we didn't initiate it — reset the AV UI so it reflects the ended
@@ -234,6 +281,8 @@ export class RoomDetailComponent implements OnInit {
         this.avConnected.set(false);
         this.micMuted.set(false);
         this.camOff.set(false);
+        this.screenSharing.set(false);
+        this.activeSpeakerIds.set(new Set());
         this.videoTiles.set([]);
       });
 
@@ -285,10 +334,12 @@ export class RoomDetailComponent implements OnInit {
         console.error('[livekit] disconnect failed', e);
       }
     }
+    this.screenSharing.set(false);
+    this.activeSpeakerIds.set(new Set());
     this.videoTiles.set([]);
   }
 
-  /** Rebuild the video tile set from the current LiveKit participants. */
+  /** Rebuild the video tile set from the current LiveKit participants (camera + screen-share). */
   private syncTiles(): void {
     const lk = this.lkRoom;
     if (!lk) {
@@ -298,22 +349,47 @@ export class RoomDetailComponent implements OnInit {
     const me = this.auth.user();
     const tiles: MediaTile[] = [];
 
-    const localCam = lk.localParticipant.getTrackPublication(Track.Source.Camera)?.track ?? null;
+    // Local participant: camera tile, plus a screen-share tile if publishing one.
+    const localIdentity = lk.localParticipant.identity;
+    const localName = me?.displayName ?? 'You';
     tiles.push({
-      identity: lk.localParticipant.identity,
-      displayName: me?.displayName ?? 'You',
-      videoTrack: localCam,
+      identity: localIdentity,
+      displayName: localName,
+      videoTrack: lk.localParticipant.getTrackPublication(Track.Source.Camera)?.track ?? null,
       isLocal: true,
+      isScreenShare: false,
     });
+    const localScreen = lk.localParticipant.getTrackPublication(Track.Source.ScreenShare)?.track ?? null;
+    if (localScreen) {
+      tiles.push({
+        identity: `${localIdentity}::screen`,
+        displayName: `${localName}'s screen`,
+        videoTrack: localScreen,
+        isLocal: true,
+        isScreenShare: true,
+      });
+    }
 
+    // Remote participants: same — camera tile + optional screen-share tile.
     for (const p of lk.remoteParticipants.values()) {
-      const cam = p.getTrackPublication(Track.Source.Camera)?.track ?? null;
+      const name = p.name ?? p.identity;
       tiles.push({
         identity: p.identity,
-        displayName: p.name ?? p.identity,
-        videoTrack: cam,
+        displayName: name,
+        videoTrack: p.getTrackPublication(Track.Source.Camera)?.track ?? null,
         isLocal: false,
+        isScreenShare: false,
       });
+      const screen = p.getTrackPublication(Track.Source.ScreenShare)?.track ?? null;
+      if (screen) {
+        tiles.push({
+          identity: `${p.identity}::screen`,
+          displayName: `${name}'s screen`,
+          videoTrack: screen,
+          isLocal: false,
+          isScreenShare: true,
+        });
+      }
     }
 
     this.videoTiles.set(tiles);

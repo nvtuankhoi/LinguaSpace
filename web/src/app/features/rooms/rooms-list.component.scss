@@ -115,7 +115,7 @@
 .empty p { font-size: var(--ls-text-sm); }
 
 // ---- Skeleton ----
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+// Skeleton pulse is shared via styles/_components.scss.
 @media (prefers-reduced-motion: reduce) { .sk-chip, .sk-line { animation: none !important; } }
 
 .skeleton-grid {

@@ -193,3 +193,63 @@ input:focus, textarea:focus, select:focus {
 .auth-card form { display: flex; flex-direction: column; gap: var(--ls-space-4); }
 .switch { font-size: var(--ls-text-sm); text-align: center; margin: 0; }
 .switch a { font-weight: var(--ls-weight-semibold); }
+
+// ---- Segmented control (tabs / post-type toggle) — shared primitive ----
+// Tray = surface-strong; the selected segment lifts to surface (the card tone)
+// + ink text + a faint lift, reading as elevated per the tonal-layering rule
+// (DESIGN.md §4) and the "active = lifted" nav language. Previously each
+// consumer set the active segment to --ls-bg — the sunken page tone — which
+// read as a hole and contradicted the system.
+.seg {
+  display: inline-flex;
+  gap: var(--ls-space-1);
+  align-self: flex-start;
+  background: var(--ls-surface-strong);
+  border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-md);
+  padding: var(--ls-space-1);
+}
+.seg-btn {
+  border: 0;
+  background: transparent;
+  color: var(--ls-muted);
+  font-family: inherit;
+  font-weight: var(--ls-weight-semibold);
+  font-size: var(--ls-text-sm);
+  padding: var(--ls-space-2) var(--ls-space-4);
+  border-radius: var(--ls-radius-sm);
+  cursor: pointer;
+  transition: background var(--ls-duration-fast) var(--ls-ease-out),
+              color var(--ls-duration-fast) var(--ls-ease-out),
+              box-shadow var(--ls-duration-fast) var(--ls-ease-out);
+}
+.seg-btn:hover { color: var(--ls-ink); }
+.seg-btn.active {
+  background: var(--ls-surface);
+  color: var(--ls-ink);
+  box-shadow: var(--ls-shadow-lift);
+}
+
+// ---- Skeletons (loading placeholders) — pulse defined ONCE globally --------
+// Feature components reference `animation: pulse …` and carry only their own
+// sizing (height/width). The shapes below are shared; adopt where the class
+// names already match. Reduced-motion is honored app-wide from this one rule.
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+.sk-line {
+  display: block;
+  border-radius: var(--ls-radius-sm);
+  background: var(--ls-surface-strong);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+.sk-avatar {
+  border-radius: var(--ls-radius-pill);
+  background: var(--ls-surface-strong);
+  flex-shrink: 0;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk-line, .sk-avatar { animation: none !important; }
+}

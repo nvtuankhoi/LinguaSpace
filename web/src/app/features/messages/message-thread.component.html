@@ -23,9 +23,49 @@
           <p class="meta muted">Direct message · <span class="online-label">Online</span></p>
         </div>
       </div>
+      <div class="head-actions">
+        <button class="link-action" type="button" (click)="toggleSearch()" [class.active]="showSearch()">
+          {{ showSearch() ? 'Close search' : 'Search' }}
+        </button>
+        <button class="link-action danger" type="button" (click)="clearMine()">Clear mine</button>
+      </div>
     </header>
 
+    @if (showSearch()) {
+      <form class="search-bar" [formGroup]="searchForm" (ngSubmit)="runSearch()">
+        <input
+          type="search"
+          formControlName="term"
+          placeholder="Search this conversation…"
+          autocomplete="off"
+        />
+        <button class="btn btn-primary btn-sm" type="submit" [disabled]="!searchForm.controls.term.value.trim()">
+          Find
+        </button>
+      </form>
+    }
+
     <div class="thread-wrap">
+      @if (showSearch()) {
+        <div class="search-results">
+          @if (searchStatus() === 'loading') {
+            <p class="muted">Searching…</p>
+          } @else if (searchStatus() === 'error') {
+            <p class="muted">Search failed. Try again.</p>
+          } @else if (!searchResults().length) {
+            <p class="muted">No messages found.</p>
+          } @else {
+            <ul class="search-list">
+              @for (m of searchResults(); track m.id) {
+                <li class="search-item" [class.mine]="isMine(m)">
+                  <p class="search-content">{{ m.content }}</p>
+                  <span class="search-time muted">{{ time(m.sentAt) }}</span>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      }
       <div class="thread" #thread (scroll)="onThreadScroll()">
         @if (!groups().length && status() !== 'loading') {
           <div class="empty-chat">

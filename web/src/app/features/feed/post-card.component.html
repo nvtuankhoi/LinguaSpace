@@ -93,7 +93,7 @@
         [attr.aria-pressed]="!!myReaction()"
         aria-label="React to post"
       >
-        <span class="reaction-icon" [class.liked]="myReaction() === 'Like'" [class.bounce]="justReacted()">
+        <span class="reaction-icon" [class.liked]="myReaction() === 'Like'" [class.pop]="justReacted()">
           {{ reactionEmoji(myReaction()) }}
         </span>
       </button>

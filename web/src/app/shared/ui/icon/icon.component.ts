@@ -41,6 +41,8 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
         @case ('mic-off') { <line x1="2" y1="2" x2="22" y2="22" /><path d="M15 10v1a3 3 0 0 1-5.7 1.3" /><path d="M9 9V4a3 3 0 0 1 5.93-.7" /><path d="M17 17a7 7 0 0 1-9.82-.57" /><path d="M5 11a7 7 0 0 0 2.1 4.9" /><path d="M12 19v3" /><path d="M9 22h6" /> }
         @case ('camera') { <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /> }
         @case ('camera-off') { <line x1="1" y1="1" x2="23" y2="23" /><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34" /><path d="M15 13a4 4 0 1 1-5.46-3.7" /> }
+        @case ('screen') { <rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8" /><path d="M12 16v4" /> }
+        @case ('screen-off') { <line x1="2" y1="2" x2="22" y2="22" /><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8" /><path d="M12 16v4" /> }
         @case ('phone-off') { <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" /><line x1="2" y1="2" x2="22" y2="22" /> }
         @case ('plus') { <path d="M12 5v14M5 12h14" /> }
         @case ('flag') { <path d="M4 22V3" /><path d="M4 4h13l-2.5 3.5L17 11H4" /> }

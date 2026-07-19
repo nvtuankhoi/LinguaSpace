@@ -3,30 +3,7 @@
 .composer { padding: var(--ls-space-4); }
 .composer form { display: flex; flex-direction: column; gap: var(--ls-space-3); }
 
-// ---- Post-type segmented toggle (mirrors feed.component .tabs/.tab; component-scoped) ----
-.type-toggle {
-  display: inline-flex;
-  gap: var(--ls-space-1);
-  align-self: flex-start;
-  background: var(--ls-surface-strong);
-  border: 1px solid var(--ls-border);
-  border-radius: var(--ls-radius-md);
-  padding: var(--ls-space-1);
-}
-.type-toggle-btn {
-  border: 0;
-  background: transparent;
-  color: var(--ls-muted);
-  font-weight: var(--ls-weight-semibold);
-  font-size: var(--ls-text-sm);
-  padding: var(--ls-space-2) var(--ls-space-4);
-  border-radius: var(--ls-radius-sm);
-  cursor: pointer;
-  transition: background var(--ls-duration-fast) var(--ls-ease-out),
-              color var(--ls-duration-fast) var(--ls-ease-out);
-}
-.type-toggle-btn:hover { color: var(--ls-ink); }
-.type-toggle-btn.active { background: var(--ls-bg); color: var(--ls-ink); }
+// Post-type toggle uses the shared .seg / .seg-btn primitive (see styles/_components.scss).
 
 .required { color: var(--ls-danger); }
 
