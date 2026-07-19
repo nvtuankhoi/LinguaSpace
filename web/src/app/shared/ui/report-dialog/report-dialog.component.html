@@ -1,0 +1,29 @@
+<div class="modal-backdrop" (click)="closed.emit()">
+  <div class="modal card" role="dialog" aria-modal="true" aria-label="Report content" (click)="$event.stopPropagation()">
+    @if (submitted()) {
+      <div class="report-done">
+        <span class="done-icon"><app-icon name="check" [size]="24" /></span>
+        <h2>Report submitted</h2>
+        <p class="muted">Thank you. Our team will review it shortly.</p>
+        <button class="btn btn-primary" type="button" (click)="closed.emit()">Done</button>
+      </div>
+    } @else {
+      <header class="modal-head">
+        <h2>Report {{ targetLabel() || targetType().toLowerCase() }}</h2>
+        <button class="modal-close" type="button" (click)="closed.emit()" aria-label="Close">×</button>
+      </header>
+      <form class="modal-body" [formGroup]="form" (ngSubmit)="submit()">
+        <label class="field">
+          <span>Why are you reporting this?</span>
+          <textarea formControlName="reason" rows="4" placeholder="Describe the issue…"></textarea>
+        </label>
+        @if (error()) {
+          <p class="report-error">{{ error() }}</p>
+        }
+        <button class="btn btn-danger" type="submit" [disabled]="submitting() || form.invalid">
+          {{ submitting() ? 'Submitting…' : 'Submit report' }}
+        </button>
+      </form>
+    }
+  </div>
+</div>

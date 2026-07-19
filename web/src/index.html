@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <title>LinguaSpace</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="LinguaSpace — practise languages together. Calm, focused language exchange.">
+  <meta name="theme-color" content="#0f131a">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Font: Hanken Grotesk (primary sans-serif) -->
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    // Apply theme before paint to avoid a flash. Honors saved choice, else system preference.
+    (function () {
+      try {
+        var saved = localStorage.getItem('ls-theme');
+        // Dark Studio is the default: honour an explicit saved choice, then an
+        // explicit OS light preference, otherwise fall back to dark.
+        var theme = (saved === 'dark' || saved === 'light')
+          ? saved
+          : (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) { /* noop */ }
+    })();
+  </script>
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>

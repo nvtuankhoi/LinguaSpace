@@ -1,0 +1,6 @@
+// LinguaSpace global styles.
+// Tokens (OKLCH, light + dark) are the single source of truth at design/tokens.scss
+// (resolved via angular.json stylePreprocessorOptions.includePaths = repo root).
+@use 'design/tokens';
+@use 'styles/base';
+@use 'styles/components';
