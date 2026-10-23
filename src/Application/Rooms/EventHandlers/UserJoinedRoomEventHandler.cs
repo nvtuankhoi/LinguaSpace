@@ -4,17 +4,22 @@ using LinguaSpace.Domain.Events;
 namespace LinguaSpace.Application.Rooms.EventHandlers;
 
 /// <summary>
-/// When a user joins a room, mark them as online in their UserProfile.
-/// SignalR notification to room members is handled in Phase 4 (Infrastructure hub).
+/// When a user joins a room: mark them online, then broadcast a UserJoinedRoom
+/// SignalR event to the room group so other members' participant lists update live.
 /// </summary>
 public class UserJoinedRoomEventHandler : INotificationHandler<UserJoinedRoomEvent>
 {
     private readonly IApplicationDbContext _context;
+    private readonly INotificationService _notificationService;
     private readonly TimeProvider _timeProvider;
 
-    public UserJoinedRoomEventHandler(IApplicationDbContext context, TimeProvider timeProvider)
+    public UserJoinedRoomEventHandler(
+        IApplicationDbContext context,
+        INotificationService notificationService,
+        TimeProvider timeProvider)
     {
         _context = context;
+        _notificationService = notificationService;
         _timeProvider = timeProvider;
     }
 
@@ -23,14 +28,19 @@ public class UserJoinedRoomEventHandler : INotificationHandler<UserJoinedRoomEve
         UserProfile? profile = await _context.UserProfiles
             .FirstOrDefaultAsync(p => p.UserId == notification.UserId, cancellationToken);
 
-        if (profile is null)
+        if (profile is not null)
         {
-            return;
+            profile.IsOnline = true;
+            profile.LastSeenAt = _timeProvider.GetUtcNow();
         }
 
-        profile.IsOnline = true;
-        profile.LastSeenAt = _timeProvider.GetUtcNow();
-
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Fan out to everyone connected to the room so participant lists refresh.
+        await _notificationService.NotifyGroupAsync(
+            $"room-{notification.RoomId}",
+            "UserJoinedRoom",
+            new { notification.RoomId, notification.UserId, notification.Role },
+            cancellationToken);
     }
 }

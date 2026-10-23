@@ -1,0 +1,17 @@
+<div class="post-detail-wrap">
+  <a class="back" routerLink="/app/feed">
+    <app-icon name="arrow-right" [size]="18" />
+    <span>Feed</span>
+  </a>
+
+  @if (status() === 'loading') {
+    <p class="muted state">Loading post…</p>
+  } @else if (status() === 'error') {
+    <div class="card state">
+      <p>This post could not be loaded. It may have been deleted.</p>
+      <a class="btn btn-secondary" routerLink="/app/feed">Back to feed</a>
+    </div>
+  } @else if (post(); as p) {
+    <app-post-card [post]="p" [expanded]="true" />
+  }
+</div>

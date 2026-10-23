@@ -38,12 +38,19 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, int
             ]);
         }
 
-        bool isParticipant = await _context.RoomParticipants
-            .AnyAsync(p => p.RoomId == request.RoomId && p.UserId == userId, cancellationToken);
+        RoomParticipant? participant = await _context.RoomParticipants
+            .FirstOrDefaultAsync(p => p.RoomId == request.RoomId && p.UserId == userId, cancellationToken);
 
-        if (!isParticipant)
+        if (participant is null)
         {
             throw new ForbiddenAccessException();
+        }
+
+        if (participant.IsMuted)
+        {
+            throw new ValidationException([
+                new FluentValidation.Results.ValidationFailure(nameof(request.Content), "You have been muted in this room.")
+            ]);
         }
 
         Message message = new()

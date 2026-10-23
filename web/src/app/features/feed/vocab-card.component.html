@@ -1,0 +1,26 @@
+<div
+  class="vocab-card"
+  [class.flipped]="flipped()"
+  role="button"
+  tabindex="0"
+  aria-label="Vocabulary card — activate to flip"
+  (click)="toggle()"
+  (keydown)="onKeydown($event)"
+>
+  <div class="vocab-inner">
+    <div class="vocab-face front">
+      @if (pronunciation()) {
+        <span class="vocab-pron muted">{{ pronunciation() }}</span>
+      }
+      <span class="vocab-word">{{ front() }}</span>
+      <span class="vocab-hint">Tap to reveal meaning</span>
+    </div>
+    <div class="vocab-face back">
+      <span class="vocab-meaning">{{ back() }}</span>
+      @if (example()) {
+        <span class="vocab-example muted">{{ example() }}</span>
+      }
+      <span class="vocab-hint">Tap to flip back</span>
+    </div>
+  </div>
+</div>

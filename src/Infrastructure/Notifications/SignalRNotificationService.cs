@@ -45,6 +45,18 @@ public class SignalRNotificationService : INotificationService
         return _roomHub.Clients.Group(groupName).SendAsync(eventName, payload, cancellationToken);
     }
 
+    public Task NotifyPostGroupAsync(
+        int postId,
+        string eventName,
+        object payload,
+        CancellationToken cancellationToken = default)
+    {
+        // Post groups live on the always-on PresenceHub connection (the user's
+        // personal realtime channel), so a feed viewer needs no extra connection.
+        return _presenceHub.Clients.Group(PresenceHub.PostGroupName(postId))
+            .SendAsync(eventName, payload, cancellationToken);
+    }
+
     public async Task<bool> IsUserOnlineAsync(
         string userId,
         CancellationToken cancellationToken = default)

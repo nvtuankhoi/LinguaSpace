@@ -1,0 +1,118 @@
+<div class="lb-wrap">
+  <div class="lb-col">
+    <header class="lb-head">
+      <h1>Leaderboard</h1>
+      <p class="muted">Where you stand among learners. Keep practising — quiet minutes move you up.</p>
+    </header>
+
+    <div class="tabs" role="tablist" aria-label="Leaderboard period">
+      @for (p of periods; track p.value) {
+        <button
+          class="tab"
+          [class.active]="period() === p.value"
+          role="tab"
+          [attr.aria-selected]="period() === p.value"
+          type="button"
+          (click)="setPeriod(p.value)"
+        >
+          {{ p.label }}
+        </button>
+      }
+    </div>
+
+    @if (status() === 'loading' && !entries().length) {
+      <div class="skeleton-ranks">
+        @for (i of [1,2,3,4,5]; track i) {
+          <div class="sk-rank">
+            <span class="sk-pos"></span>
+            <span class="sk-av"></span>
+            <div class="sk-info">
+              <span class="sk-line med"></span>
+              <span class="sk-line short"></span>
+            </div>
+            <span class="sk-xp"></span>
+          </div>
+        }
+      </div>
+    } @else if (status() === 'error' && !entries().length) {
+      <div class="card state">
+        <p>Could not load the leaderboard.</p>
+        <button class="btn btn-secondary" type="button" (click)="retry()">Retry</button>
+      </div>
+    } @else {
+      <!-- Top-3 podium -->
+      @if (topThree().length >= 3) {
+        <div class="podium" aria-label="Top 3">
+          <!-- 2nd place -->
+          <div class="podium-slot slot-2">
+            <app-avatar [name]="topThree()[1].displayName" [src]="topThree()[1].avatarUrl" [size]="52" />
+            <span class="podium-rank">2</span>
+            <span class="podium-name">{{ topThree()[1].displayName }}</span>
+            <span class="podium-xp">{{ fmt(topThree()[1].totalXp) }} XP</span>
+            <div class="podium-bar bar-2"></div>
+          </div>
+          <!-- 1st place -->
+          <div class="podium-slot slot-1">
+            <app-icon name="trophy" class="podium-crown" [size]="22" aria-hidden="true" />
+            <app-avatar [name]="topThree()[0].displayName" [src]="topThree()[0].avatarUrl" [size]="64" />
+            <span class="podium-rank">1</span>
+            <span class="podium-name">{{ topThree()[0].displayName }}</span>
+            <span class="podium-xp">{{ fmt(topThree()[0].totalXp) }} XP</span>
+            <div class="podium-bar bar-1"></div>
+          </div>
+          <!-- 3rd place -->
+          <div class="podium-slot slot-3">
+            <app-avatar [name]="topThree()[2].displayName" [src]="topThree()[2].avatarUrl" [size]="44" />
+            <span class="podium-rank">3</span>
+            <span class="podium-name">{{ topThree()[2].displayName }}</span>
+            <span class="podium-xp">{{ fmt(topThree()[2].totalXp) }} XP</span>
+            <div class="podium-bar bar-3"></div>
+          </div>
+        </div>
+      }
+
+      <!-- Full ranked list -->
+      <ol class="ranks">
+        @for (e of restEntries(); track e.userId) {
+          <li class="rank" [class.is-me]="e.userId === me()?.userId">
+            <span class="pos">{{ e.rank }}</span>
+            <app-avatar [name]="e.displayName" [src]="e.avatarUrl" [size]="40" />
+            <div class="who">
+              <span class="name">
+                {{ e.displayName }}
+                @if (e.userId === me()?.userId) {
+                  <span class="you">You</span>
+                }
+              </span>
+              @if (e.currentStreak > 0) {
+                <span class="streak muted">
+                  <app-icon name="flame" [size]="14" />
+                  {{ e.currentStreak }}-day streak
+                </span>
+              }
+            </div>
+            <span class="xp">{{ fmt(e.totalXp) }} <span class="xp-lbl">XP</span></span>
+          </li>
+        }
+      </ol>
+    }
+  </div>
+
+  <!-- Sticky "your rank" footer shown when user is not in view -->
+  @if (myEntry() && !myInTop()) {
+    <div class="my-rank-footer" role="complementary" aria-label="Your position">
+      <span class="pos">{{ myEntry()!.rank }}</span>
+      <app-avatar [name]="myEntry()!.displayName" [src]="myEntry()!.avatarUrl" [size]="32" />
+      <div class="who">
+        <span class="name">You</span>
+        @if (myEntry()!.currentStreak > 0) {
+          <span class="streak muted">
+            <app-icon name="flame" [size]="12" />
+            {{ myEntry()!.currentStreak }}-day streak
+          </span>
+        }
+      </div>
+      <span class="xp">{{ fmt(myEntry()!.totalXp) }} <span class="xp-lbl">XP</span></span>
+    </div>
+  }
+</div>

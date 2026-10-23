@@ -1,0 +1,84 @@
+:host { display: block; }
+
+.composer { padding: var(--ls-space-4); }
+.composer form { display: flex; flex-direction: column; gap: var(--ls-space-3); }
+
+// Post-type toggle uses the shared .seg / .seg-btn primitive (see styles/_components.scss).
+
+.required { color: var(--ls-danger); }
+
+// ---- Textarea with char counter overlay ----
+.textarea-wrap { position: relative; }
+.textarea-wrap textarea {
+  resize: none;
+  transition: rows var(--ls-duration-base) var(--ls-ease-out),
+              border-color var(--ls-duration-base) var(--ls-ease-out),
+              box-shadow var(--ls-duration-base) var(--ls-ease-out);
+}
+
+.char-count {
+  position: absolute;
+  bottom: 10px;
+  right: 12px;
+  font-size: var(--ls-text-caption);
+  color: var(--ls-muted);
+  pointer-events: none;
+  transition: color var(--ls-duration-fast) var(--ls-ease-out);
+}
+.char-count.warn { color: var(--ls-warning); font-weight: var(--ls-weight-semibold); }
+
+// ---- Media upload ----
+.media-row { align-items: flex-end; }
+.media-row .select-field { flex: 0 0 auto; }
+.media-row .small { font-size: var(--ls-text-caption); }
+.media-error {
+  font-size: var(--ls-text-caption);
+  color: var(--ls-danger);
+  align-self: center;
+}
+.media-preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: var(--ls-space-2);
+}
+.media-thumb {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--ls-radius-md);
+  overflow: hidden;
+  background: var(--ls-surface-strong);
+}
+.media-thumb img,
+.media-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.media-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--ls-radius-pill);
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  cursor: pointer;
+  line-height: 1;
+  font-size: var(--ls-text-sm);
+}
+
+// ---- Bottom row ----
+.composer-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--ls-space-3);
+  flex-wrap: wrap;
+}
+.select-field { display: flex; flex-direction: column; gap: var(--ls-space-1); }
+.select-field > span { font-size: var(--ls-text-caption); color: var(--ls-muted); }
+.select-field.grow { flex: 1 1 160px; }
+.select-field select,
+.select-field input { width: 100%; }
+.composer-row .btn { margin-inline-start: auto; flex-shrink: 0; }
+
+@media (max-width: 560px) {
+  .composer-row .btn { width: 100%; margin-inline-start: 0; }
+}

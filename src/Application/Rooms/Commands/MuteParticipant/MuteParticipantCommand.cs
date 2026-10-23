@@ -1,6 +1,7 @@
 using LinguaSpace.Application.Common.Exceptions;
 using LinguaSpace.Application.Common.Interfaces;
 using LinguaSpace.Application.Common.Security;
+using LinguaSpace.Domain.Events;
 
 namespace LinguaSpace.Application.Rooms.Commands.MuteParticipant;
 
@@ -27,24 +28,27 @@ public class MuteParticipantCommandHandler : IRequestHandler<MuteParticipantComm
     {
         string callerId = _currentUser.Id ?? throw new UnauthorizedAccessException();
 
-        // Verify caller is host of the room
-        RoomParticipant? callerParticipant = await _context.RoomParticipants
-            .FirstOrDefaultAsync(
-                p => p.RoomId == request.RoomId && p.UserId == callerId,
-                cancellationToken);
+        Room room = await _context.Rooms
+            .Include(r => r.Participants)
+            .FirstOrDefaultAsync(r => r.Id == request.RoomId, cancellationToken)
+            ?? throw new NotFoundException(nameof(Room), request.RoomId.ToString());
 
-        if (callerParticipant is null || callerParticipant.Role != ParticipantRole.Host)
+        RoomParticipant? caller = room.Participants.FirstOrDefault(p => p.UserId == callerId);
+
+        if (caller is null || caller.Role != ParticipantRole.Host)
         {
             throw new ForbiddenAccessException();
         }
 
-        RoomParticipant? target = await _context.RoomParticipants
-            .FirstOrDefaultAsync(
-                p => p.RoomId == request.RoomId && p.UserId == request.TargetUserId,
-                cancellationToken)
+        RoomParticipant target = room.Participants.FirstOrDefault(p => p.UserId == request.TargetUserId)
             ?? throw new NotFoundException(nameof(RoomParticipant), request.TargetUserId);
 
         target.IsMuted = request.Mute;
+
+        // Fan out the mute change to everyone in the room (including the affected
+        // user) so client mute state stays in sync. Dispatched after SaveChanges
+        // via DispatchDomainEventsInterceptor.
+        room.AddDomainEvent(new ParticipantMutedEvent(room.Id, target.UserId, request.Mute));
 
         await _context.SaveChangesAsync(cancellationToken);
     }

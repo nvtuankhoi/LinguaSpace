@@ -29,7 +29,8 @@ public class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery, Curso
 
         IQueryable<Post> query = _context.Posts
             .Where(p => p.AuthorId == request.UserId && !p.IsDeleted)
-            .Include(p => p.Tags);
+            .Include(p => p.Tags)
+            .Include(p => p.MediaItems);
 
         if (request.BeforeCursor.HasValue)
         {
@@ -52,7 +53,8 @@ public class GetUserPostsQueryHandler : IRequestHandler<GetUserPostsQuery, Curso
                 p.LikeCount,
                 p.CommentCount,
                 p.Created,
-                p.Tags.Select(t => t.Tag).ToList()))
+                p.Tags.Select(t => t.Tag).ToList(),
+                p.MediaItems.OrderBy(m => m.SortOrder).Select(m => new MediaItemDto(m.Id, m.Url, m.SortOrder)).ToList()))
             .ToList();
 
         bool hasMore = raw.Count > pageSize;

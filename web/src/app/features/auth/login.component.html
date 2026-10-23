@@ -1,0 +1,64 @@
+<div class="auth">
+  <a class="auth-back" routerLink="/">
+    <app-icon name="sparkles" [size]="20" />
+    <span>LinguaSpace</span>
+  </a>
+
+  <div class="auth-card card">
+    <div>
+      <h1>Welcome back</h1>
+      <p class="muted">Log in to keep practising.</p>
+    </div>
+
+    @if (error()) {
+      <div class="alert" role="alert">{{ error() }}</div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <label class="field">
+        <span>Email</span>
+        <input type="email" formControlName="email" autocomplete="email" placeholder="you@example.com" />
+      </label>
+
+      <label class="field">
+        <span>Password</span>
+        <input type="password" formControlName="password" autocomplete="current-password" placeholder="Your password" />
+      </label>
+
+      <button class="btn btn-primary btn-block" type="submit" [disabled]="loading()">
+        {{ loading() ? 'Signing in…' : 'Log in' }}
+      </button>
+    </form>
+
+    <button
+      class="btn btn-ghost btn-block"
+      type="button"
+      (click)="showForgot.set(!showForgot()); forgotMsg.set(null)"
+    >
+      {{ showForgot() ? '← Back to login' : 'Forgot password?' }}
+    </button>
+
+    @if (showForgot()) {
+      <form [formGroup]="forgotForm" (ngSubmit)="submitForgot()">
+        <label class="field">
+          <span>Email</span>
+          <input type="email" formControlName="email" autocomplete="email" placeholder="you@example.com" />
+        </label>
+        <button class="btn btn-primary btn-block" type="submit">Send reset link</button>
+        @if (forgotMsg()) {
+          <p class="switch muted">{{ forgotMsg() }}</p>
+        }
+      </form>
+    } @else {
+      <div class="or"><span>or</span></div>
+
+      <button class="btn btn-secondary btn-block" type="button" (click)="demoGoogle()">
+        <app-icon name="google" [size]="18" />
+        <span>Continue with Google</span>
+      </button>
+
+      <p class="switch muted">Demo: <code>demo@lingua.space</code> · <code>Password1!</code></p>
+      <p class="switch">New here? <a routerLink="/register">Create an account</a></p>
+    }
+  </div>
+</div>

@@ -1,0 +1,84 @@
+<div class="notifications-wrap">
+  <header class="notifications-head">
+    <div>
+      <h1>Notifications</h1>
+      <p class="muted">Activity from your practice circle.</p>
+    </div>
+    <div class="header-actions">
+      @if (items().length > 0) {
+        <button class="btn btn-ghost" type="button" (click)="clearAll()">
+          Clear all
+        </button>
+      }
+      @if (unreadCount() > 0) {
+        <button class="btn btn-secondary" type="button" (click)="markAllRead()">
+          <app-icon name="eye" [size]="16" />
+          Mark all read
+        </button>
+      }
+    </div>
+  </header>
+
+  @if (status() === 'loading' && !items().length) {
+    <div class="skeleton-list">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <div class="skeleton-row">
+          <span class="skeleton-icon"></span>
+          <div class="skeleton-text">
+            <span class="skeleton-line long"></span>
+            <span class="skeleton-line short"></span>
+          </div>
+        </div>
+      }
+    </div>
+  } @else if (status() === 'error' && !items().length) {
+    <div class="card state">
+      <p>Could not load notifications.</p>
+      <button class="btn btn-secondary" type="button" (click)="retry()">Try again</button>
+    </div>
+  } @else if (!items().length) {
+    <div class="empty card">
+      <span class="empty-icon"><app-icon name="notifications" [size]="24" /></span>
+      <h3>No notifications yet</h3>
+      <p class="muted">When someone interacts with you — a like, a comment, a room invite — it will appear here.</p>
+    </div>
+  } @else {
+    <ul class="notif-list">
+      @for (n of items(); track n.id) {
+        <li>
+          <button
+            class="notif"
+            [class.unread]="!n.isRead"
+            type="button"
+            (click)="onClick(n)"
+          >
+            <span class="notif-icon" [class.accent]="n.type === 'BadgeEarned'">
+              <app-icon [name]="meta(n).icon" [size]="18" />
+            </span>
+            <div class="notif-main">
+              <p class="notif-text">{{ meta(n).text }}</p>
+              @if (n.type === 'FriendRequest') {
+                <div class="notif-actions">
+                  <button class="btn btn-primary btn-sm" type="button" (click)="acceptFriend($event, n)">Accept</button>
+                  <button class="btn btn-secondary btn-sm" type="button" (click)="declineFriend($event, n)">Decline</button>
+                </div>
+              }
+              <span class="notif-time muted">{{ time(n.createdAt) }}</span>
+            </div>
+            @if (!n.isRead) {
+              <span class="unread-dot"></span>
+            }
+            <button
+              class="notif-delete btn btn-ghost"
+              type="button"
+              (click)="deleteOne($event, n)"
+              aria-label="Delete notification"
+            >
+              <app-icon name="trash" [size]="14" />
+            </button>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</div>

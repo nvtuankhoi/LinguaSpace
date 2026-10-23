@@ -1,0 +1,542 @@
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  ElementRef,
+  inject,
+  input,
+  OnInit,
+  signal,
+  viewChild,
+  viewChildren,
+} from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { firstValueFrom } from 'rxjs';
+
+import { Participant, Room as LkRoom, RoomEvent, Track } from 'livekit-client';
+
+import { AuthStore } from '../../core/auth/auth.store';
+import { RoomStore } from '../../core/state/room.store';
+import { RoomRealtimeService } from '../../core/state/room-realtime.service';
+import { RoomsApi } from '../../core/api/rooms.api';
+import { UsersApi } from '../../core/api/users.api';
+import { relativeTime } from '../../core/util/time';
+import { AvatarComponent } from '../../shared/ui/avatar/avatar.component';
+import { IconComponent } from '../../shared/ui/icon/icon.component';
+import { LanguageChipComponent } from '../../shared/ui/language-chip/language-chip.component';
+import { MessageDto, RoomParticipantDto, RoomType, UpdateRoomRequest, UserSummaryDto } from '../../core/models';
+
+interface MediaTile {
+  identity: string;
+  displayName: string;
+  /** A LiveKit video track to render, or null for an audio-only/avatar fallback tile. */
+  videoTrack: Track | null;
+  isLocal: boolean;
+  /** A screen-share track (Track.Source.ScreenShare), rendered as a featured tile. */
+  isScreenShare: boolean;
+}
+
+@Component({
+  selector: 'app-room-detail',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [ReactiveFormsModule, RouterLink, AvatarComponent, IconComponent, LanguageChipComponent],
+  templateUrl: './room-detail.component.html',
+  styleUrl: './room-detail.component.scss',
+})
+export class RoomDetailComponent implements OnInit {
+  private readonly store = inject(RoomStore);
+  private readonly realtime = inject(RoomRealtimeService);
+  private readonly auth = inject(AuthStore);
+  private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly roomsApi = inject(RoomsApi);
+  private readonly usersApi = inject(UsersApi);
+  private readonly router = inject(Router);
+
+  /** Bound from the :id route param via withComponentInputBinding. */
+  readonly id = input.required<string>();
+
+  protected readonly current = this.store.current;
+  protected readonly messages = this.store.messages;
+  protected readonly status = this.store.status;
+  protected readonly mediaParticipantIds = this.store.mediaParticipantIds;
+
+  /** True when the current user is this room's host (drives host controls). */
+  protected readonly isHost = computed(() => {
+    const room = this.current();
+    const me = this.auth.user();
+    return !!room && !!me && room.hostId === me.userId;
+  });
+
+  /** True when the current user has been muted in this room (disables the composer). */
+  protected readonly iAmMuted = computed(() => {
+    const me = this.auth.user()?.userId;
+    const room = this.current();
+    if (!me || !room) {
+      return false;
+    }
+    return room.participants.find((p) => p.userId === me)?.isMuted ?? false;
+  });
+
+  protected readonly showManage = signal(false);
+  protected readonly manageForm = this.fb.nonNullable.group({
+    title: ['', [Validators.required]],
+    description: [''],
+    maxParticipants: [8, [Validators.min(2), Validators.max(50)]],
+  });
+
+  // Voice/video state
+  protected readonly avConnected = signal(false);
+  protected readonly avConnecting = signal(false);
+  protected readonly avError = signal<string | null>(null);
+  protected readonly micMuted = signal(false);
+  protected readonly camOff = signal(false);
+  protected readonly videoTiles = signal<MediaTile[]>([]);
+  /** True while the local participant is publishing a screen-share track. */
+  protected readonly screenSharing = signal(false);
+  /** LiveKit identities currently detected as speaking (drives `.is-speaking`). */
+  protected readonly activeSpeakerIds = signal<ReadonlySet<string>>(new Set());
+  /** Screen-share tiles (featured, rendered above the camera grid). */
+  protected readonly screenTiles = computed(() => this.videoTiles().filter((t) => t.isScreenShare));
+  /** Camera (and avatar-fallback) tiles for the main grid. */
+  protected readonly cameraTiles = computed(() => this.videoTiles().filter((t) => !t.isScreenShare));
+
+  private lkRoom: LkRoom | null = null;
+  private readonly thread = viewChild<ElementRef<HTMLDivElement>>('thread');
+  private readonly videoEls = viewChildren<ElementRef<HTMLVideoElement>>('videoEl');
+
+  protected readonly form = this.fb.nonNullable.group({ content: [''] });
+
+  protected readonly sendError = signal<string | null>(null);
+
+  constructor() {
+    // Append incoming realtime messages, then keep the thread scrolled to the bottom.
+    this.realtime.onMessage.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((ev) => {
+      this.store.appendMessage(ev);
+      this.scrollToBottom();
+    });
+
+    // Live participant list: refresh the room when someone joins or leaves.
+    this.realtime.onParticipantChange.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      void this.store.refreshParticipants();
+    });
+
+    // Live mute state: apply server-pushed mute changes to the participant list
+    // (the affected user's composer reacts via the iAmMuted computed).
+    this.realtime.onMuteChange.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((ev) => {
+      this.store.applyMute(ev.userId, ev.isMuted);
+    });
+
+    // Live message deletions: reflect other participants' deletes in the thread.
+    this.realtime.onMessageDeleted.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((ev) => {
+      this.store.applyMessageDeleted(ev.messageId);
+    });
+
+    // Live media presence: track who's in the voice/video call so non-AV
+    // participants and the manage list reflect join/leave without a refetch.
+    this.realtime.onMediaJoin.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((ev) => {
+      this.store.applyMediaJoin(ev.userId);
+    });
+    this.realtime.onMediaLeave.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((ev) => {
+      this.store.applyMediaLeave(ev.userId);
+    });
+
+    // Attach LiveKit video tracks to their <video> elements whenever the tile set changes.
+    effect(() => {
+      const tiles = this.videoTiles();
+      const els = this.videoEls();
+      for (const el of els) {
+        const identity = el.nativeElement.getAttribute('data-identity');
+        const tile = tiles.find((t) => t.identity === identity);
+        if (tile?.videoTrack) {
+          tile.videoTrack.attach(el.nativeElement);
+        }
+      }
+    });
+
+    this.destroyRef.onDestroy(async () => {
+      await this.disconnectLiveKit();
+      void this.store.closeRoom();
+    });
+  }
+
+  async ngOnInit(): Promise<void> {
+    await this.store.openRoom(Number(this.id()));
+    this.scrollToBottom();
+  }
+
+  protected isMine(message: MessageDto): boolean {
+    return message.senderId === this.auth.user()?.userId;
+  }
+
+  protected isInCall(userId: string): boolean {
+    return this.mediaParticipantIds().includes(userId);
+  }
+
+  /** True when this tile's participant is currently an active speaker. */
+  protected isActiveSpeaker(tile: MediaTile): boolean {
+    return this.activeSpeakerIds().has(tile.identity);
+  }
+
+  protected time(iso: string): string {
+    return relativeTime(iso);
+  }
+
+  protected roomTypeLabel(type: RoomType): string {
+    return type === 'VoiceOnly' ? 'Voice' : type === 'VideoEnabled' ? 'Video' : 'Text';
+  }
+
+  protected roomTypeIcon(type: RoomType): string {
+    return type === 'VoiceOnly' ? 'mic' : type === 'VideoEnabled' ? 'camera' : 'messages';
+  }
+
+  // ---- LiveKit voice/video ----
+
+  protected async toggleMic(): Promise<void> {
+    const muted = !this.micMuted();
+    this.micMuted.set(muted);
+    try {
+      await this.lkRoom?.localParticipant.setMicrophoneEnabled(!muted);
+    } catch (e) {
+      console.error('[livekit] mic toggle failed', e);
+    }
+  }
+
+  protected async toggleCam(): Promise<void> {
+    const off = !this.camOff();
+    this.camOff.set(off);
+    try {
+      await this.lkRoom?.localParticipant.setCameraEnabled(!off);
+    } catch (e) {
+      console.error('[livekit] cam toggle failed', e);
+    }
+  }
+
+  /**
+   * Publish/stop a screen-share track. The browser shows its native picker
+   * (getDisplayMedia); stopping via the browser's "Stop sharing" bar fires
+   * LocalTrackUnpublished, which resets `screenSharing` (see joinAv).
+   */
+  protected async toggleScreenShare(): Promise<void> {
+    const lk = this.lkRoom;
+    if (!lk) {
+      return;
+    }
+    const sharing = !this.screenSharing();
+    this.screenSharing.set(sharing);
+    try {
+      await lk.localParticipant.setScreenShareEnabled(sharing);
+    } catch (e) {
+      console.error('[livekit] screen share toggle failed', e);
+      this.screenSharing.set(!sharing);
+    }
+  }
+
+  protected async joinAv(): Promise<void> {
+    const room = this.current();
+    if (!room || this.avConnecting() || this.avConnected()) {
+      return;
+    }
+    this.avConnecting.set(true);
+    this.avError.set(null);
+    try {
+      const { token, liveKitUrl } = await firstValueFrom(this.roomsApi.mediaToken(room.id));
+      const lk = new LkRoom({ adaptiveStream: true, dynacast: true });
+      await lk.connect(liveKitUrl, token);
+
+      // Publish local tracks up front (mic always; camera only for video rooms).
+      await lk.localParticipant.setMicrophoneEnabled(!this.micMuted());
+      if (room.roomType === 'VideoEnabled') {
+        await lk.localParticipant.setCameraEnabled(!this.camOff());
+      }
+
+      lk.on(RoomEvent.ParticipantConnected, () => this.syncTiles());
+      lk.on(RoomEvent.ParticipantDisconnected, () => this.syncTiles());
+      lk.on(RoomEvent.TrackSubscribed, () => this.syncTiles());
+      lk.on(RoomEvent.TrackUnsubscribed, () => this.syncTiles());
+      lk.on(RoomEvent.LocalTrackPublished, () => this.syncTiles());
+      lk.on(RoomEvent.LocalTrackUnpublished, (publication) => {
+        // The user stopped screen share via the browser's "Stop sharing" bar.
+        if (publication.source === Track.Source.ScreenShare) {
+          this.screenSharing.set(false);
+        }
+        this.syncTiles();
+      });
+      // Active-speaker detection (LiveKit's server-side audio levels). Highlights
+      // each speaker's camera tile via the `.is-speaking` style. Ordered loudest
+      // first; includes the local participant, so self-talk lights up too.
+      lk.on(RoomEvent.ActiveSpeakersChanged, (speakers: Participant[]) => {
+        this.activeSpeakerIds.set(new Set(speakers.map((s) => s.identity)));
+      });
+      // Involuntary disconnect (host ended the call, network loss, server kick).
+      // Voluntary disconnects removeAllListeners() first, so this only fires
+      // when we didn't initiate it — reset the AV UI so it reflects the ended
+      // call instead of hanging on a stale "Live" state.
+      lk.on(RoomEvent.Disconnected, () => {
+        this.lkRoom = null;
+        this.avConnected.set(false);
+        this.micMuted.set(false);
+        this.camOff.set(false);
+        this.screenSharing.set(false);
+        this.activeSpeakerIds.set(new Set());
+        this.videoTiles.set([]);
+      });
+
+      this.lkRoom = lk;
+      this.syncTiles();
+      this.avConnected.set(true);
+    } catch (err) {
+      console.error('[livekit] connect failed', err);
+      this.avError.set('Could not connect to the room media server. You can still use the text chat.');
+      this.avConnected.set(false);
+      await this.disconnectLiveKit();
+    } finally {
+      this.avConnecting.set(false);
+    }
+  }
+
+  protected async leaveAv(): Promise<void> {
+    await this.disconnectLiveKit();
+    this.avConnected.set(false);
+    this.micMuted.set(false);
+    this.camOff.set(false);
+  }
+
+  /**
+   * Host-only: end the voice/video session for everyone. The backend terminates
+   * the LiveKit room, disconnecting all participants. Distinct from leaveAv()
+   * (just me leaves) and endRoom() (deletes the whole room).
+   */
+  protected async endCall(): Promise<void> {
+    if (!confirm('End the call for everyone? All participants will be disconnected.')) {
+      return;
+    }
+    try {
+      await this.store.endCall();
+    } finally {
+      // The host is disconnected from the LiveKit room too — clean up locally.
+      await this.leaveAv();
+    }
+  }
+
+  private async disconnectLiveKit(): Promise<void> {
+    const lk = this.lkRoom;
+    this.lkRoom = null;
+    if (lk) {
+      lk.removeAllListeners();
+      try {
+        await lk.disconnect();
+      } catch (e) {
+        console.error('[livekit] disconnect failed', e);
+      }
+    }
+    this.screenSharing.set(false);
+    this.activeSpeakerIds.set(new Set());
+    this.videoTiles.set([]);
+  }
+
+  /** Rebuild the video tile set from the current LiveKit participants (camera + screen-share). */
+  private syncTiles(): void {
+    const lk = this.lkRoom;
+    if (!lk) {
+      this.videoTiles.set([]);
+      return;
+    }
+    const me = this.auth.user();
+    const tiles: MediaTile[] = [];
+
+    // Local participant: camera tile, plus a screen-share tile if publishing one.
+    const localIdentity = lk.localParticipant.identity;
+    const localName = me?.displayName ?? 'You';
+    tiles.push({
+      identity: localIdentity,
+      displayName: localName,
+      videoTrack: lk.localParticipant.getTrackPublication(Track.Source.Camera)?.track ?? null,
+      isLocal: true,
+      isScreenShare: false,
+    });
+    const localScreen = lk.localParticipant.getTrackPublication(Track.Source.ScreenShare)?.track ?? null;
+    if (localScreen) {
+      tiles.push({
+        identity: `${localIdentity}::screen`,
+        displayName: `${localName}'s screen`,
+        videoTrack: localScreen,
+        isLocal: true,
+        isScreenShare: true,
+      });
+    }
+
+    // Remote participants: same — camera tile + optional screen-share tile.
+    for (const p of lk.remoteParticipants.values()) {
+      const name = p.name ?? p.identity;
+      tiles.push({
+        identity: p.identity,
+        displayName: name,
+        videoTrack: p.getTrackPublication(Track.Source.Camera)?.track ?? null,
+        isLocal: false,
+        isScreenShare: false,
+      });
+      const screen = p.getTrackPublication(Track.Source.ScreenShare)?.track ?? null;
+      if (screen) {
+        tiles.push({
+          identity: `${p.identity}::screen`,
+          displayName: `${name}'s screen`,
+          videoTrack: screen,
+          isLocal: false,
+          isScreenShare: true,
+        });
+      }
+    }
+
+    this.videoTiles.set(tiles);
+  }
+
+  protected async send(): Promise<void> {
+    const content = this.form.getRawValue().content.trim();
+    if (!content || this.iAmMuted()) {
+      return;
+    }
+    this.sendError.set(null);
+    try {
+      await this.store.send(content);
+      this.form.reset();
+      this.scrollToBottom();
+    } catch {
+      // Server rejected (e.g., the host muted us or the room closed). Keep the
+      // typed text so it isn't lost.
+      this.sendError.set('Could not send your message. You may be muted or the room may have closed.');
+    }
+  }
+
+  /** Deletes a room message. Backend allows the message owner OR the room host. */
+  protected async deleteMsg(msg: MessageDto): Promise<void> {
+    if (!confirm('Delete this message?')) {
+      return;
+    }
+    await this.store.deleteMessage(msg.id);
+  }
+
+  // ---- Host controls ----
+
+  protected openManage(): void {
+    const room = this.current();
+    if (!room) {
+      return;
+    }
+    this.manageForm.setValue({
+      title: room.title,
+      description: room.description ?? '',
+      maxParticipants: room.maxParticipants,
+    });
+    this.showManage.set(true);
+  }
+
+  protected async submitManage(): Promise<void> {
+    if (this.manageForm.invalid) {
+      this.manageForm.markAllAsTouched();
+      return;
+    }
+    const v = this.manageForm.getRawValue();
+    const req: UpdateRoomRequest = {
+      title: v.title.trim(),
+      description: v.description.trim() || null,
+      maxParticipants: v.maxParticipants,
+    };
+    await this.store.updateRoom(req);
+    this.showManage.set(false);
+  }
+
+  protected async makeHost(userId: string): Promise<void> {
+    if (!confirm('Transfer host to this participant? You will no longer be the host.')) {
+      return;
+    }
+    await this.store.transferHost(userId);
+    this.showManage.set(false);
+  }
+
+  protected async kickUser(userId: string): Promise<void> {
+    if (!confirm('Remove this participant from the room?')) {
+      return;
+    }
+    await this.store.kickParticipant(userId);
+  }
+
+  protected async toggleMute(p: RoomParticipantDto): Promise<void> {
+    const willMute = !p.isMuted;
+    const msg = willMute
+      ? 'Mute this participant in chat? They will not be able to send messages.'
+      : 'Allow this participant to send messages again?';
+    if (!confirm(msg)) {
+      return;
+    }
+    await this.store.muteParticipant(p.userId, willMute);
+  }
+
+  // ---- Host: invite by search ----
+
+  protected readonly inviteQuery = signal('');
+  protected readonly inviteResults = signal<UserSummaryDto[]>([]);
+  protected readonly inviteLoading = signal(false);
+  protected readonly invitedIds = signal<readonly string[]>([]);
+
+  protected onInviteInput(event: Event): void {
+    this.inviteQuery.set((event.target as HTMLInputElement).value);
+  }
+
+  protected async searchInvite(): Promise<void> {
+    const q = this.inviteQuery().trim();
+    if (q.length < 2) {
+      this.inviteResults.set([]);
+      return;
+    }
+    this.inviteLoading.set(true);
+    try {
+      const res = await firstValueFrom(this.usersApi.searchUsers(q, { pageSize: 5 }));
+      const present = new Set((this.current()?.participants ?? []).map((p) => p.userId));
+      this.inviteResults.set(res.items.filter((u) => !present.has(u.userId)));
+    } catch {
+      this.inviteResults.set([]);
+    } finally {
+      this.inviteLoading.set(false);
+    }
+  }
+
+  protected isInvited(userId: string): boolean {
+    return this.invitedIds().includes(userId);
+  }
+
+  protected async inviteUser(user: UserSummaryDto): Promise<void> {
+    try {
+      await this.store.invite(user.userId);
+      this.invitedIds.set([...this.invitedIds(), user.userId]);
+    } catch {
+      /* surfaced elsewhere */
+    }
+  }
+
+  protected async endRoom(): Promise<void> {
+    if (!confirm('End this room for everyone? This cannot be undone.')) {
+      return;
+    }
+    await this.store.deleteRoom();
+    this.showManage.set(false);
+    await this.router.navigate(['/app/rooms']);
+  }
+
+  protected onInput(event: Event): void {
+    this.form.controls.content.setValue((event.target as HTMLInputElement).value);
+  }
+
+  private scrollToBottom(): void {
+    queueMicrotask(() => {
+      const el = this.thread()?.nativeElement;
+      if (el) {
+        el.scrollTop = el.scrollHeight;
+      }
+    });
+  }
+}

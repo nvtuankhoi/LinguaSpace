@@ -1,6 +1,6 @@
 namespace LinguaSpace.Application.Rooms.DTOs;
 
-public record RoomParticipantDto(string UserId, string DisplayName, string? AvatarUrl, string Role, DateTimeOffset JoinedAt);
+public record RoomParticipantDto(string UserId, string DisplayName, string? AvatarUrl, string Role, DateTimeOffset JoinedAt, bool IsMuted);
 
 public record RoomDto(
     int Id,

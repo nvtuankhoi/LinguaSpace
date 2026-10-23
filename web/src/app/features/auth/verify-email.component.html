@@ -1,0 +1,28 @@
+<div class="auth">
+  <a class="auth-back" routerLink="/">
+    <app-icon name="sparkles" [size]="20" />
+    <span>LinguaSpace</span>
+  </a>
+
+  <div class="auth-card card">
+    @if (status() === 'verifying') {
+      <div>
+        <h1>Verifying your email…</h1>
+        <p class="muted">Hang tight while we confirm your address.</p>
+      </div>
+    } @else if (status() === 'ok') {
+      <div>
+        <h1>Email verified</h1>
+        <p class="muted">Thanks — your email is now confirmed.</p>
+      </div>
+      <a class="btn btn-primary btn-block" routerLink="/app/feed">Continue</a>
+    } @else {
+      <div>
+        <h1>Could not verify email</h1>
+        <p class="muted">The link may be invalid or expired. Request a fresh verification email from Settings.</p>
+      </div>
+      <a class="btn btn-primary btn-block" routerLink="/app/settings">Go to Settings</a>
+      <a class="btn btn-secondary btn-block" routerLink="/app/feed">Continue to feed</a>
+    }
+  </div>
+</div>

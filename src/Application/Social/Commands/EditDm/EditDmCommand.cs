@@ -20,10 +20,16 @@ public class EditDmCommandHandler : IRequestHandler<EditDmCommand>
     private readonly IApplicationDbContext _context;
     private readonly IUser _currentUser;
 
-    public EditDmCommandHandler(IApplicationDbContext context, IUser currentUser)
+    private readonly INotificationService _notificationService;
+
+    public EditDmCommandHandler(
+        IApplicationDbContext context,
+        IUser currentUser,
+        INotificationService notificationService)
     {
         _context = context;
         _currentUser = currentUser;
+        _notificationService = notificationService;
     }
 
     public async Task Handle(EditDmCommand request, CancellationToken cancellationToken)
@@ -39,9 +45,22 @@ public class EditDmCommandHandler : IRequestHandler<EditDmCommand>
             throw new ForbiddenAccessException();
         }
 
+        Conversation conversation = await _context.Conversations
+            .FirstOrDefaultAsync(c => c.Id == message.ConversationId, cancellationToken)
+            ?? throw new NotFoundException(nameof(Conversation), message.ConversationId.ToString());
+
+        string recipientId = conversation.User1Id == userId ? conversation.User2Id : conversation.User1Id;
+
         message.Content = request.NewContent;
         message.EditedAt = DateTimeOffset.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Live-sync the edit to the other participant.
+        await _notificationService.NotifyAsync(
+            recipientId,
+            "DirectMessageEdited",
+            new { message.Id, message.ConversationId, message.Content, message.EditedAt },
+            cancellationToken);
     }
 }

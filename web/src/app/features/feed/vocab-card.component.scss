@@ -1,0 +1,57 @@
+:host { display: block; }
+
+.vocab-card {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  aspect-ratio: 3 / 2;
+  perspective: 1000px;
+  cursor: pointer;
+  outline: none;
+  border-radius: var(--ls-radius-md);
+}
+.vocab-card:focus-visible {
+  outline: 2px solid var(--ls-primary);
+  outline-offset: 3px;
+}
+
+.vocab-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform var(--ls-duration-base) var(--ls-ease-out);
+}
+.vocab-card.flipped .vocab-inner { transform: rotateY(180deg); }
+
+.vocab-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ls-space-2);
+  padding: var(--ls-space-4);
+  text-align: center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  background: var(--ls-surface);
+  border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-md);
+  box-shadow: var(--ls-shadow-lift);
+}
+.vocab-face.back {
+  transform: rotateY(180deg);
+  background: var(--ls-primary-tint);
+}
+
+.vocab-word { font-size: 1.6rem; font-weight: var(--ls-weight-semibold); color: var(--ls-ink); word-break: break-word; }
+.vocab-meaning { font-size: 1.2rem; font-weight: var(--ls-weight-medium); color: var(--ls-ink); word-break: break-word; }
+.vocab-pron { font-size: var(--ls-text-sm); }
+.vocab-example { font-size: var(--ls-text-sm); font-style: italic; }
+.vocab-hint { font-size: var(--ls-text-caption); color: var(--ls-muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .vocab-inner { transition: none; }
+}

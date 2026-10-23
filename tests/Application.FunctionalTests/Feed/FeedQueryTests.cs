@@ -24,7 +24,10 @@ public class FeedQueryTests : TestBase
             ThumbnailUrl: "https://cdn.example.com/thumb.jpg",
             LinkUrl: "https://example.com/article",
             LinkTitle: "Article",
-            LinkDescription: "Description");
+            LinkDescription: "Description",
+            BackText: null,
+            Pronunciation: null,
+            Example: null);
 
         int postId = await TestApp.SendAsync(new CreatePostCommand(
             Content: "Metadata post",

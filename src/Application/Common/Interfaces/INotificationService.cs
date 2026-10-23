@@ -20,6 +20,14 @@ public interface INotificationService
         object payload,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Broadcast an event to every client currently viewing a feed post
+    /// (a PresenceHub group named <c>post-{postId}</c>).</summary>
+    Task NotifyPostGroupAsync(
+        int postId,
+        string eventName,
+        object payload,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Check whether a user currently has an active SignalR connection (presence).</summary>
     Task<bool> IsUserOnlineAsync(
         string userId,

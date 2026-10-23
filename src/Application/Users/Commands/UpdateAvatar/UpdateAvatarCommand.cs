@@ -7,9 +7,9 @@ namespace LinguaSpace.Application.Users.Commands.UpdateAvatar;
 /// <summary>
 /// Updates the user's avatar URL.
 ///
-/// For Phase 1 backend-only: accepts a URL string directly.
-/// The client is responsible for uploading the image and providing the final URL.
-/// Phase 2 will add a dedicated upload endpoint that calls IStorageService.UploadAvatarAsync.
+/// Accepts a URL string directly. The client uploads the image via
+/// <c>POST /api/Users/me/avatar/upload</c> (which calls IStorageService.UploadAsync) and
+/// then persists the returned URL here (or via UpdateProfile.avatarUrl).
 /// </summary>
 [Authorize]
 public record UpdateAvatarCommand(string AvatarUrl) : IRequest;

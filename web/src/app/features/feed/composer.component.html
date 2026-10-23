@@ -1,0 +1,105 @@
+<div class="composer card">
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <div class="seg" role="group" aria-label="Post type">
+      @for (t of postTypes; track t.value) {
+        <button
+          class="seg-btn"
+          [class.active]="form.controls.postType.value === t.value"
+          type="button"
+          (click)="selectType(t.value)"
+        >
+          {{ t.label }}
+        </button>
+      }
+    </div>
+
+    <div class="textarea-wrap">
+      <textarea
+        formControlName="content"
+        [rows]="rows()"
+        [placeholder]="contentPlaceholder()"
+        maxlength="1000"
+        (input)="onContentInput($event)"
+      ></textarea>
+      @if (charCount() > 800) {
+        <span class="char-count" [class.warn]="charCount() > 950" aria-live="polite">
+          {{ 1000 - charCount() }}
+        </span>
+      }
+    </div>
+
+    @if (isVocab()) {
+      <div class="composer-row">
+        <label class="select-field grow">
+          <span class="muted">Meaning / translation <span class="required">*</span></span>
+          <input type="text" formControlName="backText" placeholder="What it means" maxlength="500" />
+        </label>
+        <label class="select-field">
+          <span class="muted">Pronunciation</span>
+          <input type="text" formControlName="pronunciation" placeholder="romaji / pinyin / IPA" maxlength="120" />
+        </label>
+        <label class="select-field grow">
+          <span class="muted">Example sentence</span>
+          <input type="text" formControlName="example" placeholder="Optional" maxlength="500" />
+        </label>
+      </div>
+    }
+
+    <div class="composer-row media-row">
+      <label class="select-field">
+        <span class="muted">Media <span class="small">({{ media().length }}/4)</span></span>
+        <input
+          type="file"
+          multiple
+          accept="image/*,video/*"
+          [disabled]="uploadingMedia() || media().length >= 4"
+          (change)="onMediaSelected($event)"
+        />
+      </label>
+      @if (mediaError()) {
+        <span class="media-error">{{ mediaError() }}</span>
+      }
+    </div>
+
+    @if (media().length) {
+      <div class="media-preview">
+        @for (m of media(); track m.url; let i = $index) {
+          <div class="media-thumb">
+            @if (mediaKind(m.url) === 'video') {
+              <video [src]="m.url" preload="metadata"></video>
+            } @else {
+              <!-- impeccable-disable-next-line broken-image -- Angular [src] property binding; the static parser reads it as a missing literal src. m.url always comes from a completed upload (media() entries), never null. -->
+              <img [src]="m.url" alt="" />
+            }
+            <button type="button" class="media-remove" (click)="removeMedia(i)" aria-label="Remove media">×</button>
+          </div>
+        }
+      </div>
+    }
+
+    <div class="composer-row">
+      <label class="select-field">
+        <span class="muted">Language</span>
+        <select formControlName="languageCode">
+          <option value="">Any language</option>
+          @for (lang of languages; track lang.code) {
+            <option [value]="lang.code">{{ lang.name }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="select-field grow">
+        <span class="muted">Tags</span>
+        <input type="text" formControlName="tags" placeholder="grammar, vocab, pronunciation…" maxlength="120" />
+      </label>
+
+      <button
+        class="btn btn-primary"
+        type="submit"
+        [disabled]="sending() || uploadingMedia() || form.controls.content.invalid || (isVocab() && !form.controls.backText.value.trim())"
+      >
+        {{ sending() ? 'Posting…' : 'Post' }}
+      </button>
+    </div>
+  </form>
+</div>

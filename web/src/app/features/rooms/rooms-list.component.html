@@ -1,0 +1,140 @@
+<div class="rooms-wrap">
+  <div class="rooms-col">
+    <header class="rooms-head">
+      <div>
+        <h1>Practice rooms</h1>
+        <p class="muted">Drop into a voice, video, or text room and practise together.</p>
+      </div>
+      <button class="btn btn-primary" type="button" (click)="showCreate.set(!showCreate())">
+        {{ showCreate() ? 'Close' : 'New room' }}
+      </button>
+    </header>
+
+    @if (showCreate()) {
+      <form class="card create" [formGroup]="form" (ngSubmit)="create()">
+        <label class="field grow">
+          <span>Room title</span>
+          <input type="text" formControlName="title" placeholder="e.g. Japanese B1 speaking circle" />
+        </label>
+        <div class="create-row">
+          <label class="field">
+            <span>Language</span>
+            <select formControlName="languageCode">
+              @for (lang of languages; track lang) {
+                <option [value]="lang">{{ lang | uppercase }}</option>
+              }
+            </select>
+          </label>
+          <label class="field">
+            <span>Type</span>
+            <select formControlName="roomType">
+              <option value="TextOnly">Text</option>
+              <option value="VoiceOnly">Voice</option>
+              <option value="VideoEnabled">Video</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Max people</span>
+            <input type="number" formControlName="maxParticipants" min="2" max="50" />
+          </label>
+          <button class="btn btn-primary" type="submit" [disabled]="form.controls.title.invalid">Create</button>
+        </div>
+      </form>
+    }
+
+    <!-- Source: public directory vs. rooms I've joined -->
+    <div class="filter-bar">
+      <div class="filter-tabs" role="tablist" aria-label="Rooms view">
+        <button
+          class="filter-tab"
+          [class.active]="source() === 'discover'"
+          role="tab"
+          [attr.aria-selected]="source() === 'discover'"
+          type="button"
+          (click)="setSource('discover')"
+        >
+          Discover
+        </button>
+        <button
+          class="filter-tab"
+          [class.active]="source() === 'mine'"
+          role="tab"
+          [attr.aria-selected]="source() === 'mine'"
+          type="button"
+          (click)="setSource('mine')"
+        >
+          My rooms
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <div class="filter-tabs" role="tablist" aria-label="Room type filter">
+        @for (f of typeFilters; track f.value) {
+          <button
+            class="filter-tab"
+            [class.active]="typeFilter() === f.value"
+            role="tab"
+            [attr.aria-selected]="typeFilter() === f.value"
+            type="button"
+            (click)="setTypeFilter(f.value)"
+          >
+            {{ f.label }}
+          </button>
+        }
+      </div>
+    </div>
+
+    @if (status() === 'loading' && !rooms().length) {
+      <div class="skeleton-grid">
+        @for (i of [1,2,3,4]; track i) {
+          <div class="sk-room card">
+            <div class="sk-top">
+              <span class="sk-chip"></span>
+              <span class="sk-chip short"></span>
+            </div>
+            <span class="sk-line med"></span>
+            <span class="sk-line short"></span>
+          </div>
+        }
+      </div>
+    } @else if (status() === 'error' && !rooms().length) {
+      <p>Could not load rooms.</p>
+    } @else if (!filteredRooms().length) {
+      <div class="empty card">
+        <span class="empty-icon">
+          <app-icon name="rooms" [size]="24" />
+        </span>
+        @if (source() === 'mine') {
+          <h3>No joined rooms</h3>
+          <p class="muted">Rooms you join will show up here. Browse Discover to find one.</p>
+        } @else {
+          <h3>No rooms yet</h3>
+          <p class="muted">Be the first to open a practice room.</p>
+        }
+      </div>
+    } @else {
+      <ul class="grid">
+        @for (room of filteredRooms(); track room.id) {
+          <li>
+            <button class="room card" type="button" (click)="open(room.id)">
+              <div class="room-top">
+                <app-lang-chip [code]="room.languageCode" />
+                <span class="type-badge" [class]="'type-' + room.roomType.toLowerCase()">
+                  <app-icon [name]="typeIcon(room.roomType)" [size]="13" />
+                  {{ typeLabel(room.roomType) }}
+                </span>
+              </div>
+              <h3>{{ room.title }}</h3>
+              <div class="room-foot">
+                <span class="meta muted">{{ room.participantCount }} / {{ room.maxParticipants }}</span>
+                <div class="live-dot" [class.live]="room.participantCount > 0" aria-hidden="true"></div>
+              </div>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</div>

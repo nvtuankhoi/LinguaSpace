@@ -21,11 +21,16 @@ public class UpdatePostCommandHandler : IRequestHandler<UpdatePostCommand>
 {
     private readonly IApplicationDbContext _context;
     private readonly IUser _currentUser;
+    private readonly INotificationService _notifications;
 
-    public UpdatePostCommandHandler(IApplicationDbContext context, IUser currentUser)
+    public UpdatePostCommandHandler(
+        IApplicationDbContext context,
+        IUser currentUser,
+        INotificationService notifications)
     {
         _context = context;
         _currentUser = currentUser;
+        _notifications = notifications;
     }
 
     public async Task Handle(UpdatePostCommand request, CancellationToken cancellationToken)
@@ -45,5 +50,11 @@ public class UpdatePostCommandHandler : IRequestHandler<UpdatePostCommand>
         post.LanguageCode = request.LanguageCode;
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        await _notifications.NotifyPostGroupAsync(
+            post.Id,
+            "PostEdited",
+            new { Id = post.Id, Content = post.Content, LanguageCode = post.LanguageCode },
+            cancellationToken);
     }
 }

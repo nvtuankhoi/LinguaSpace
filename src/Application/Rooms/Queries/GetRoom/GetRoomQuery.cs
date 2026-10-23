@@ -42,7 +42,7 @@ public class GetRoomQueryHandler : IRequestHandler<GetRoomQuery, RoomDto>
                     ? info
                     : ("Unknown", null);
 
-                return new RoomParticipantDto(p.UserId, displayName, avatarUrl, p.Role.ToString(), p.JoinedAt);
+                return new RoomParticipantDto(p.UserId, displayName, avatarUrl, p.Role.ToString(), p.JoinedAt, p.IsMuted);
             })
             .ToList();
 

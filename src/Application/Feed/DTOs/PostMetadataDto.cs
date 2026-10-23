@@ -8,7 +8,10 @@ public record PostMetadataDto(
     string? ThumbnailUrl,
     string? LinkUrl,
     string? LinkTitle,
-    string? LinkDescription)
+    string? LinkDescription,
+    string? BackText,
+    string? Pronunciation,
+    string? Example)
 {
     private static readonly JsonSerializerOptions s_options = new(JsonSerializerDefaults.Web);
 
